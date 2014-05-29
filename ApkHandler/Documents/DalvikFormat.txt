@@ -1,0 +1,65 @@
+﻿Dalvik Executable Format
+
+Bitfield, String, and Constant Definitions
+
+
+Note: All elements' field_ids and method_ids must refer to the same defining class.
+encoded_field Format
+
+
+encoded_array_item
+referenced from class_def_item
+appears in the data section
+alignment: none (byte-aligned)
+Name 	Format 	Description
+value 	encoded_array 	bytes representing the encoded array value, in the format specified by "encoded_array Format" under "encoded_value Encoding" above.
+System Annotations
+
+System annotations are used to represent various pieces of reflective information about classes (and methods and fields). This information is generally only accessed indirectly by client (non-system) code.
+
+System annotations are represented in .dex files as annotations with visibility set to VISIBILITY_SYSTEM.
+dalvik.annotation.AnnotationDefault
+appears on methods in annotation interfaces
+
+An AnnotationDefault annotation is attached to each annotation interface which wishes to indicate default bindings.
+Name 	Format 	Description
+value 	Annotation 	the default bindings for this annotation, represented as an annotation of this type. The annotation need not include all names defined by the annotation; missing names simply do not have defaults.
+dalvik.annotation.EnclosingClass
+appears on classes
+
+An EnclosingClass annotation is attached to each class which is either defined as a member of another class, per se, or is anonymous but not defined within a method body (e.g., a synthetic inner class). Every class that has this annotation must also have an InnerClass annotation. Additionally, a class must not have both an EnclosingClass and an EnclosingMethod annotation.
+Name 	Format 	Description
+value 	Class 	the class which most closely lexically scopes this class
+dalvik.annotation.EnclosingMethod
+appears on classes
+
+An EnclosingMethod annotation is attached to each class which is defined inside a method body. Every class that has this annotation must also have an InnerClass annotation. Additionally, a class must not have both an EnclosingClass and an EnclosingMethod annotation.
+Name 	Format 	Description
+value 	Method 	the method which most closely lexically scopes this class
+dalvik.annotation.InnerClass
+appears on classes
+
+An InnerClass annotation is attached to each class which is defined in the lexical scope of another class's definition. Any class which has this annotation must also have either an EnclosingClass annotation or an EnclosingMethod annotation.
+Name 	Format 	Description
+name 	String 	the originally declared simple name of this class (not including any package prefix). If this class is anonymous, then the name is null.
+accessFlags 	int 	the originally declared access flags of the class (which may differ from the effective flags because of a mismatch between the execution models of the source language and target virtual machine)
+dalvik.annotation.MemberClasses
+appears on classes
+
+A MemberClasses annotation is attached to each class which declares member classes. (A member class is a direct inner class that has a name.)
+Name 	Format 	Description
+value 	Class[] 	array of the member classes
+dalvik.annotation.Signature
+appears on classes, fields, and methods
+
+A Signature annotation is attached to each class, field, or method which is defined in terms of a more complicated type than is representable by a type_id_item. The .dex format does not define the format for signatures; it is merely meant to be able to represent whatever signatures a source language requires for successful implementation of that language's semantics. As such, signatures are not generally parsed (or verified) by virtual machine implementations. The signatures simply get handed off to higher-level APIs and tools (such as debuggers). Any use of a signature, therefore, should be written so as not to make any assumptions about only receiving valid signatures, explicitly guarding itself against the possibility of coming across a syntactically invalid signature.
+
+Because signature strings tend to have a lot of duplicated content, a Signature annotation is defined as an array of strings, where duplicated elements naturally refer to the same underlying data, and the signature is taken to be the concatenation of all the strings in the array. There are no rules about how to pull apart a signature into separate strings; that is entirely up to the tools that generate .dex files.
+Name 	Format 	Description
+value 	String[] 	the signature of this class or member, as an array of strings that is to be concatenated together
+dalvik.annotation.Throws
+appears on methods
+
+A Throws annotation is attached to each method which is declared to throw one or more exception types.
+Name 	Format 	Description
+value 	Class[] 	the array of exception types thrown

@@ -1,0 +1,48 @@
+﻿Sources :
+
+http://source.android.com/devices/tech/dalvik/dex-format.html
+
+        a
+const/16 v7, #+11
+const/16 v6, #+10
+const/4 v5, #+1
+const/4 v4, #+15
+const/4 v3, #+14
+invoke-virtual {v8 ,v5}, Lcom/google/ads/AdActivity;/requestWindowFeature
+invoke-virtual {v8}, Lcom/google/ads/AdActivity;/getWindow
+move-result-object v0
+const/16 v1, #+1024
+const/16 v2, #+1024
+invoke-virtual {v0 ,v1 ,v2}, Landroid/view/Window;/setFlags
+sget v1,Lcom/google/ads/e/a;/a
+if-lt v1, v7, +14
+iget-boolean v1, v8,Lcom/google/ads/AdActivity;/r
+if-eqz v1, +43
+const-string v1,Enabling hardware acceleration on the AdActivity window.
+invoke-static {v1}, Lcom/google/ads/e/i;/a
+invoke-static {v0}, Lcom/google/ads/e/r;/a
+invoke-virtual {v9}, Lcom/google/ads/b/e;/getParent
+move-result-object v0
+if-eqz v0, +17
+if-eqz v12, +42
+instance-of v1, v0,Landroid/view/ViewGroup;
+if-eqz v1, +32
+check-cast v0,Landroid/view/ViewGroup;
+iput-object v0, v8,Lcom/google/ads/AdActivity;/k
+iget-object v0, v8,Lcom/google/ads/AdActivity;/k
+invoke-virtual {v0 ,v9}, Landroid/view/ViewGroup;/removeView
+invoke-virtual {v9}, Lcom/google/ads/b/e;/i
+move-result-object v0
+if-eqz v0, +29
+const-string v0,Interstitial created with an AdWebView that is already in use by another AdActivity.
+invoke-direct {v8 ,v0}, Lcom/google/ads/AdActivity;/a
+return-void
+const-string v0,Disabling hardware acceleration on the AdActivity WebView.
+invoke-static {v0}, Lcom/google/ads/e/i;/a
+invoke-virtual {v9}, Lcom/google/ads/b/e;/g
+goto +215
+const-string v0,MRAID banner was not a child of a ViewGroup.
+invoke-direct {v8 ,v0}, Lcom/google/ads/AdActivity;/a
+goto +241
+const-string v0,Interstitial created with an AdWebView that has a parent.
+invoke-direct {v8 ,v0}, Lcom/google/ads/AdActivity;/a
