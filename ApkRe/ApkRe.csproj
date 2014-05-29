@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{6510CE76-22A0-425A-8916-B475A6DB0F1A}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>com.rackham.ApkRe</RootNamespace>
+    <AssemblyName>ApkRe</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;DBGCFG</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="ByteCode\ArrayConstructionInstruction.cs" />
+    <Compile Include="ByteCode\ArrayOperationInstruction.cs" />
+    <Compile Include="AST\AstBuilder.cs" />
+    <Compile Include="AST\AstNode.cs" />
+    <Compile Include="ByteCode\BinaryOperationInstruction.cs" />
+    <Compile Include="AST\CatcherNode.cs" />
+    <Compile Include="AST\CatchNode.cs" />
+    <Compile Include="ByteCode\CheckCastInstruction.cs" />
+    <Compile Include="ByteCode\ComparisonInstruction.cs" />
+    <Compile Include="ByteCode\ConditionalBranchInstruction.cs" />
+    <Compile Include="AST\FinalizerNode.cs" />
+    <Compile Include="AST\GuardedNode.cs" />
+    <Compile Include="ByteCode\DalvikInstruction.cs" />
+    <Compile Include="AST\TryNode.cs" />
+    <Compile Include="CFG\BlockNode.cs" />
+    <Compile Include="CFG\CfgBuilder.cs" />
+    <Compile Include="CFG\CfgNode.cs" />
+    <Compile Include="CFG\CircuitDefinition.cs" />
+    <Compile Include="CFG\IGraphNode.cs" />
+    <Compile Include="CFG\CyclingGraphNode.cs" />
+    <Compile Include="CFG\DirectedGraphCycleFinder.cs" />
+    <Compile Include="Delegates.cs" />
+    <Compile Include="ByteCode\InstanceConstructionInstruction.cs" />
+    <Compile Include="ByteCode\InstanceFieldInstruction.cs" />
+    <Compile Include="ByteCode\LoadConstantInstruction.cs" />
+    <Compile Include="ByteCode\MethodCallInstruction.cs" />
+    <Compile Include="ByteCode\MonitorInstruction.cs" />
+    <Compile Include="ByteCode\MoveInstruction.cs" />
+    <Compile Include="ByteCode\NopInstruction.cs" />
+    <Compile Include="AST\RawByteCodeAstNode.cs" />
+    <Compile Include="ByteCode\ReturnInstruction.cs" />
+    <Compile Include="ByteCode\StaticFieldInstruction.cs" />
+    <Compile Include="ByteCode\SwitchInstruction.cs" />
+    <Compile Include="ByteCode\ThrowInstruction.cs" />
+    <Compile Include="ByteCode\UnaryOperationInstruction.cs" />
+    <Compile Include="ByteCode\UnconditionalBranchInstruction.cs" />
+    <Compile Include="Helpers.cs" />
+    <Compile Include="JavaReverser.cs" />
+    <Compile Include="Tree\NodeBase-Test.cs" />
+    <Compile Include="Tree\NodeBase.cs" />
+    <Compile Include="ByteCode\OpCodeDecoder-Init.cs" />
+    <Compile Include="ByteCode\OpCodeDecoder.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="REException.cs" />
+    <Compile Include="SourceCodeTreeHandler.cs" />
+    <Compile Include="Tree\WalkContinuation.cs" />
+    <Compile Include="Tree\WalkMode.cs" />
+    <Compile Include="Tree\WalkTraversal.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ApkHandler\ApkHandler.csproj">
+      <Project>{63ABEEFD-C939-4932-9C24-CB84FE7DA395}</Project>
+      <Name>ApkHandler</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
