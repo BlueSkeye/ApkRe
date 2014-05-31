@@ -47,9 +47,6 @@
     <Compile Include="API\IResolver.cs" />
     <Compile Include="API\ITryBlock.cs" />
     <Compile Include="API\IType.cs" />
-    <Compile Include="ApkFile.cs" />
-    <Compile Include="ApkFormatException.cs" />
-    <Compile Include="ApkFormatNotSupportedException.cs" />
     <Compile Include="Dex\Annotation.cs" />
     <Compile Include="Dex\AnnotationElement.cs" />
     <Compile Include="Dex\AnnotationVisibility.cs" />
@@ -73,14 +70,6 @@
     <Compile Include="Dex\TryBlock.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Zip\CentralDirectoryFileHeader.cs" />
-    <Compile Include="Zip\CompressionMethod.cs" />
-    <Compile Include="Zip\EndOfCentralDirectory.cs" />
-    <Compile Include="Zip\FileHeader.cs" />
-    <Compile Include="Zip\LocalFileHeader.cs" />
-    <Compile Include="Zip\ZipExtractor.cs" />
-    <Compile Include="Zip\ZipFormatException.cs" />
-    <Compile Include="Zip\ZipNotSupportedFormatException.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Documents\DalvikFormat.txt" />
