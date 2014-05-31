@@ -355,6 +355,16 @@ namespace com.rackham.ApkHandler
             }
         }
 
+        internal static ushort PeekUInt16(byte[] from, int offset)
+        {
+            return ReadUInt16(from, ref offset);
+        }
+
+        internal static uint PeekUInt32(byte[] from, int offset)
+        {
+            return ReadUInt32(from, ref offset);
+        }
+
         // Each LEB128 encoded value consists of one to five bytes, which together represent
         // a single 32-bit value. Each byte has its most significant bit set except for the
         // final byte in the sequence, which has its most significant bit clear. The remaining
@@ -414,6 +424,26 @@ namespace com.rackham.ApkHandler
             return ReadULEB128(reader) - 1;
         }
 
+        internal static ushort ReadUInt16(byte[] from, ref int offset)
+        {
+            return (ushort)(from[offset++] + (256 * from[offset++]));
+        }
+
+        internal static ushort ReadUInt16(FileStream from)
+        {
+            byte[] buffer = new byte[2];
+            if (buffer.Length != from.Read(buffer, 0, buffer.Length)) {
+                throw new ApplicationException("Not enough data");
+            }
+            return (ushort)(buffer[0] + (256 * buffer[1]));
+        }
+
+        internal static uint ReadUInt32(byte[] from, ref int offset)
+        {
+            return (uint)(from[offset++] + (256 * from[offset++]) +
+                (65536 * from[offset++]) + (16777216 * from[offset++]));
+        }
+
         /// <summary>Copy <paramref name="from"/> content to <paramref name="to"/>
         /// stream starting at current location of <paramref name="from"/> stream
         /// until the end of the <paramref name="from"/> stream is reached. On
@@ -421,18 +451,30 @@ namespace com.rackham.ApkHandler
         /// restored.</summary>
         /// <param name="from">Originating stream.</param>
         /// <param name="to">Destination stream.</param>
-        internal static void StreamCopy(Stream from, Stream to)
+        /// <param name="count">Number of bytes to copy from the input stream.
+        /// A -1 value implies copying the whole input stream.</param>
+        /// <param name="preservePosition">true if position should be preserved on
+        /// method return.</param>
+        internal static void StreamCopy(Stream from, Stream to, int count = -1, bool preservePosition = true)
         {
-            long initialPosition = from.Position;
+            long initialPosition = preservePosition ? from.Position : 0;
 
-            try {
+            if (-1 == count) { count = (int)(from.Length - from.Position); }
+            try
+            {
                 byte[] localBuffer = new byte[8192];
-                while (true) {
-                    int inputSize = from.Read(localBuffer, 0, localBuffer.Length);
-                    if (0 >= inputSize) { return; }
-                    to.Write(localBuffer, 0, inputSize);
+                while (0 < count)
+                {
+                    int readSize = Math.Min(localBuffer.Length, count);
+                    if (readSize != from.Read(localBuffer, 0, readSize))
+                    {
+                        throw new ApplicationException("File copy size error.");
+                    }
+                    to.Write(localBuffer, 0, readSize);
+                    count -= readSize;
                 }
-            } finally { from.Position = initialPosition; }
+            }
+            finally { if (preservePosition) { from.Position = initialPosition; } }
         }
         #endregion
 
