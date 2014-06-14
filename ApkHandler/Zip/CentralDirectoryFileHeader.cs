@@ -13,14 +13,14 @@ namespace com.rackham.ApkHandler.Zip
         {
             ushort fileCommentLength = Helpers.ReadUInt16(input);
             byte[] buffer = new byte[12 + base.FileNameLength + base.ExtraFieldLength + fileCommentLength];
-            if (buffer.Length != input.Read(buffer, 0, buffer.Length))
-            {
+            if (buffer.Length != input.Read(buffer, 0, buffer.Length)) {
                 throw new ZipFormatException("Not enough data for CDFH");
             }
             int offset = 0;
             FileStartDiskNumber = Helpers.ReadUInt16(buffer, ref offset);
             InternalAttributes = Helpers.ReadUInt16(buffer, ref offset);
-            ExternalAttributes = Helpers.ReadUInt16(buffer, ref offset);
+            ExternalAttributes = Helpers.ReadUInt32(buffer, ref offset);
+            LocalFileHeaderOffset = Helpers.ReadUInt32(buffer, ref offset);
             base.ReadFileNameAndExtraField(buffer, ref offset);
             if (0 == fileCommentLength) { FileComment = string.Empty; }
             else
@@ -38,7 +38,7 @@ namespace com.rackham.ApkHandler.Zip
             get { return (byte[])_signatureBytes.Clone(); }
         }
 
-        internal ushort ExternalAttributes { get; private set; }
+        internal uint ExternalAttributes { get; private set; }
 
         internal string FileComment { get; private set; }
 

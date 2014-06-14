@@ -66,6 +66,9 @@ namespace com.rackham.ApkHandler.Zip
         #region METHODS
         protected void ReadFileNameAndExtraField(byte[] buffer, ref int offset)
         {
+            // We are a bit loose here. We should check for bit 11 of the general purpose
+            // flags being set before deciding for UTF-8 then otherwise fall back to
+            // ASCII with CP 437. This is valid for both the file name and the extra field.
             if (0 == FileNameLength) { FileName = string.Empty; }
             else {
                 FileName = UTF8Encoding.UTF8.GetString(buffer, offset, FileNameLength);

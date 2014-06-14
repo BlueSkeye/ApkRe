@@ -12,21 +12,9 @@ namespace com.rackham.ApkHandler.Zip
     internal class ZipExtractor
     {
         #region METHODS
-        internal static string EnsurePath(DirectoryInfo baseDirectory, string filename)
-        {
-            string[] filenameItems = filename.Split('/');
-            string scannedPath = baseDirectory.FullName;
-            for (int index = 0; index < filenameItems.Length - 1; index++) {
-                scannedPath = Path.Combine(scannedPath, filenameItems[index]);
-                if (!Directory.Exists(scannedPath)) { Directory.CreateDirectory(scannedPath); }
-            }
-            return Path.Combine(scannedPath, filenameItems[filenameItems.Length - 1]);
-        }
-
         internal static void Extract(FileInfo from, DirectoryInfo to)
         {
-            using (FileStream input = File.Open(from.FullName, FileMode.Open, FileAccess.Read, FileShare.Read))
-            {
+            using (FileStream input = File.Open(from.FullName, FileMode.Open, FileAccess.Read, FileShare.Read)) {
                 EndOfCentralDirectory endOfCentralDirectory = LoadEndOfCentralDirectory(input);
                 if (endOfCentralDirectory.CentralDirectoryStartOffset > from.Length) {
                     throw new ZipFormatException("Invalid EOCD start offset");
@@ -35,7 +23,7 @@ namespace com.rackham.ApkHandler.Zip
                 for (int entryIndex = 0; entryIndex < endOfCentralDirectory.TotalRecordsCount; entryIndex++) {
                     CentralDirectoryFileHeader centralHeader = new CentralDirectoryFileHeader(input);
                     long savedPosition = input.Position;
-                    string filePath;
+                    string outputFilePath;
                     try {
                         input.Seek(centralHeader.LocalFileHeaderOffset, SeekOrigin.Begin);
                         LocalFileHeader localHeader = new LocalFileHeader(input);
@@ -44,16 +32,16 @@ namespace com.rackham.ApkHandler.Zip
                                 if (localHeader.CompressedSize != localHeader.UncompressedSize) {
                                     throw new ZipFormatException("Compression size mismatch.");
                                 }
-                                filePath = EnsurePath(to, localHeader.FileName);
-                                using (FileStream output = File.Open(filePath, FileMode.Create, FileAccess.Write)) {
+                                outputFilePath = Helpers.EnsurePath(to, localHeader.FileName);
+                                using (FileStream output = File.Open(outputFilePath, FileMode.Create, FileAccess.Write)) {
                                     Helpers.StreamCopy(input, output, (int)localHeader.CompressedSize);
                                 }
                                 break;
                             case CompressionMethod.Deflated:
-                                filePath = EnsurePath(to, localHeader.FileName);
-                                using (FileStream output = File.Open(filePath, FileMode.Create, FileAccess.Write)) {
+                                outputFilePath = Helpers.EnsurePath(to, localHeader.FileName);
+                                using (FileStream output = File.Open(outputFilePath, FileMode.Create, FileAccess.Write)) {
                                     using (DeflateStream deflater = new DeflateStream(input, CompressionMode.Decompress, true)) {
-                                        Helpers.StreamCopy(deflater, output, (int)localHeader.CompressedSize, false);
+                                        Helpers.StreamCopy(deflater, output, (int)localHeader.UncompressedSize, false);
                                     }
                                 }
                                 break;
