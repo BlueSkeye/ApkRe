@@ -54,8 +54,30 @@
     <Compile Include="Dex\AnnotationElement.cs" />
     <Compile Include="Dex\AnnotationVisibility.cs" />
     <Compile Include="Dex\BinaryReaderWithConsistency.cs" />
+    <Compile Include="Dex\CC\ChunkType.cs" />
+    <Compile Include="Dex\CC\CompressedFormatException.cs" />
+    <Compile Include="Dex\CC\CompressedResource.cs" />
+    <Compile Include="Dex\CC\NullChunk.cs" />
+    <Compile Include="Dex\CC\Package.cs" />
+    <Compile Include="Dex\CC\PackageResolverDelegate.cs" />
+    <Compile Include="Dex\CC\Resource.cs" />
+    <Compile Include="Dex\CC\ResourceConfigurationFlags.cs" />
+    <Compile Include="Dex\CC\ResourceTableConfiguration.cs" />
+    <Compile Include="Dex\CC\ResourceValue.cs" />
+    <Compile Include="Dex\CC\ResourceValueType.cs" />
+    <Compile Include="Dex\CC\StyleSpan.cs" />
+    <Compile Include="Dex\CC\TableHeader.cs" />
+    <Compile Include="Dex\CC\Type.cs" />
+    <Compile Include="Dex\CC\TypeSpecification.cs" />
+    <Compile Include="Dex\CC\XmlElementItem.cs" />
+    <Compile Include="Dex\CC\XmlNamespaceItem.cs" />
+    <Compile Include="Dex\CC\ResourceChunkHeader.cs" />
+    <Compile Include="Dex\CC\StringPool.cs" />
+    <Compile Include="Dex\CC\XmlResourceMap.cs" />
+    <Compile Include="Dex\CC\XmlTreeItem.cs" />
     <Compile Include="Dex\ChecksumReader.cs" />
     <Compile Include="Dex\ClassDefinition.cs" />
+    <Compile Include="Dex\CC\CompressedXmlHandler.cs" />
     <Compile Include="Dex\Constants.cs" />
     <Compile Include="Dex\DebugInfo.cs" />
     <Compile Include="Dex\DexFile.cs" />
@@ -86,6 +108,7 @@
     <Content Include="Documents\DalvikFormat.txt" />
     <Content Include="Documents\DalvikVMBytecode.txt" />
     <Content Include="Documents\DalvikVMInstructionFormat.txt" />
+    <Content Include="Documents\OtherDocuments.txt" />
     <Content Include="Documents\TextFile1.txt" />
   </ItemGroup>
   <ItemGroup>

@@ -111,6 +111,22 @@ namespace com.rackham.ApkHandler
             return UTF8Encoding.UTF8.GetString(mutf8Bytes.ToArray());
         }
 
+        /// <summary>Make sure all directories within the relative file path exist under the
+        /// given base directory. Create missing directories.</summary>
+        /// <param name="baseDirectory">Base directory to start scan from.</param>
+        /// <param name="relativeFilePath">The file path relative to base directory.</param>
+        /// <returns>The full patch of the target file.</returns>
+        internal static string EnsurePath(DirectoryInfo baseDirectory, string relativeFilePath)
+        {
+            string[] filenameItems = relativeFilePath.Split('/');
+            string scannedPath = baseDirectory.FullName;
+            for (int index = 0; index < filenameItems.Length - 1; index++) {
+                scannedPath = Path.Combine(scannedPath, filenameItems[index]);
+                if (!Directory.Exists(scannedPath)) { Directory.CreateDirectory(scannedPath); }
+            }
+            return Path.Combine(scannedPath, filenameItems[filenameItems.Length - 1]);
+        }
+
         internal static string GetUndecoratedClassName(string candidate)
         {
             return candidate;
