@@ -1,0 +1,3 @@
+﻿ZIP compression format
+
+http://www.pkware.com/documents/casestudies/APPNOTE.TXT
