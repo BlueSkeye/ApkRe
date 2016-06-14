@@ -708,6 +708,8 @@ namespace com.rackham.ApkHandler.Dex
         /// <summary></summary>
         /// <param name="reader"></param>
         /// <returns></returns>
+        /// <remarks>We do not support REVERSE_ENDIAN encoding at current time. This makes
+        /// the code simpler.</remarks>
         private object LoadEncodedValue(BinaryReader reader)
         {
             // An encoded_value is an encoded piece of (nearly) arbitrary hierarchically
@@ -724,22 +726,36 @@ namespace com.rackham.ApkHandler.Dex
             EncodedValueType valueType = (EncodedValueType)(inputByte & 0x1F);
             byte valueArg = (byte)((inputByte & 0xE0) >> 5);
 
-            switch (valueType)
-            {
+            switch (valueType) {
                 // value_arg must be 0. data type is byte.
                 // signed one-byte integer value
                 case EncodedValueType.Byte:
-                    throw new NotImplementedException();
+                    if (0 != valueArg) { throw new ParseException(); }
+                    return reader.ReadSByte();
                 // value_arg is size - 1 (0 or 1). data type is an array of bytes
                 // of variable length defined by value_arg. 
                 // signed two-byte integer value, sign-extended
                 case EncodedValueType.Short:
-                    throw new NotImplementedException();
+                    switch (valueArg) {
+                        case 0:
+                            return (short)(sbyte)reader.ReadByte();
+                        case 1:
+                            return reader.ReadInt16();
+                        default:
+                            throw new ParseException();
+                    }
                 // value_arg is size - 1 (0 or 1). data type is an array of bytes
                 // of variable length defined by value_arg. 
                 // unsigned two-byte integer value, zero-extended
                 case EncodedValueType.Char:
-                    throw new NotImplementedException();
+                    switch (valueArg) {
+                        case 0:
+                            return (char)reader.ReadByte();
+                        case 1:
+                            return (char)reader.ReadUInt16();
+                        default:
+                            throw new ParseException();
+                    }
                 // value_arg is size - 1 (0 to 3). data type is an array of bytes
                 // of variable length defined by value_arg. 
                 // signed four-byte integer value, sign-extended
@@ -754,7 +770,12 @@ namespace com.rackham.ApkHandler.Dex
                 // of variable length defined by value_arg. 
                 // signed eight-byte integer value, sign-extended
                 case EncodedValueType.Long:
-                    throw new NotImplementedException();
+                    if (7 < valueArg) { throw new ParseException(); }
+                    long longResult = 0;
+                    for (int index = 0; index <= valueArg; index++) {
+                        longResult += (reader.ReadByte() << (8 * index));
+                    }
+                    return longResult;
                 // value_arg is size - 1 (0 to 3). data type is an array of bytes
                 // of variable length defined by value_arg. 
                 // four-byte bit pattern, zero-extended to the right, and interpreted
@@ -772,41 +793,35 @@ namespace com.rackham.ApkHandler.Dex
                 // unsigned (zero-extended) four-byte integer value, interpreted as an
                 // index into the string_ids section and representing a string value
                 case EncodedValueType.String:
-                    throw new NotImplementedException();
+                    return LoadIndexedEncodedValue(reader, valueArg, this.Strings);
                 // value_arg is size - 1 (0 to 3). data type is an array of bytes
                 // of variable length defined by value_arg. 
                 // unsigned (zero-extended) four-byte integer value, interpreted as an
                 // index into the type_ids section and representing a reflective
                 // type/class value
                 case EncodedValueType.Type:
-                    throw new NotImplementedException();
+                    return LoadIndexedEncodedValue(reader, valueArg, this.Types);
                 // value_arg is size - 1 (0 to 3). data type is an array of bytes
                 // of variable length defined by value_arg. 
                 // unsigned (zero-extended) four-byte integer value, interpreted as an
                 // index into the field_ids section and representing a reflective field
                 // value
                 case EncodedValueType.Field:
-                    throw new NotImplementedException();
+                    return LoadIndexedEncodedValue(reader, valueArg, this.Fields);
                 // value_arg is size - 1 (0 to 3). data type is an array of bytes
                 // of variable length defined by value_arg. 
                 // unsigned (zero-extended) four-byte integer value, interpreted as an
                 // index into the method_ids section and representing a reflective method
                 // value
                 case EncodedValueType.Method:
-                    throw new NotImplementedException();
+                    return LoadIndexedEncodedValue(reader, valueArg, this.Methods);
                 // value_arg is size - 1 (0 to 3). data type is an array of bytes
                 // of variable length defined by value_arg. 
                 // unsigned (zero-extended) four-byte integer value, interpreted as an
                 // index into the field_ids section and representing the value of an
                 // enumerated type constant
                 case EncodedValueType.Enum:
-                    if (3 < valueArg) { throw new ParseException(); }
-                    int fieldIndex = 0;
-                    for (int index = 0; index <= valueArg; index++) {
-                        fieldIndex += (reader.ReadByte() << (8 * index));
-                    }
-                    if (fieldIndex >= this.Fields.Count) { throw new ParseException(); }
-                    return Fields[fieldIndex];
+                    return LoadIndexedEncodedValue(reader, valueArg, this.Fields);
                 // value_arg must be 0. data type is an encoded array.
                 // an array of values, in the format specified by "encoded_array Format"
                 // below. The size of the value is implicit in the encoding.
@@ -822,13 +837,13 @@ namespace com.rackham.ApkHandler.Dex
                 // value_arg must be 0. no data.
                 // A null reference value
                 case EncodedValueType.Null:
-                    throw new NotImplementedException();
+                    if (0 != valueArg) { throw new ParseException(); }
+                    return null;
                 // value_arg is 0 or 1. no data
                 // one-bit value; 0 for false and 1 for true. The bit is represented
                 // in the value_arg.
                 case EncodedValueType.Boolean:
-                    switch(valueArg)
-                    {
+                    switch(valueArg) {
                         case 0:
                             return false;
                         case 1:
@@ -850,6 +865,18 @@ namespace com.rackham.ApkHandler.Dex
             // data is specified by "annotation_set_item" below.
             field.Annotations = LoadAnnotationSet(reader);
             return;
+        }
+
+        private T LoadIndexedEncodedValue<T>(BinaryReader reader, int valueArg,
+            List<T> from)
+        {
+            if (3 < valueArg) { throw new ParseException(); }
+            int indexValue = 0;
+            for (int index = 0; index <= valueArg; index++) {
+                indexValue += (reader.ReadByte() << (8 * index));
+            }
+            if (from.Count <= indexValue) { throw new ParseException(); }
+            return from[indexValue];
         }
 
         private void LoadMethodAnnotations(BinaryReader reader)
