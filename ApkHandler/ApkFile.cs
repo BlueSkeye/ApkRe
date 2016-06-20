@@ -23,9 +23,9 @@ namespace com.rackham.ApkHandler
         /// <summary>Extract file content into the target directory.</summary>
         /// <param name="from">Input file</param>
         /// <param name="to">target directory</param>
-        public static ApkFile Extract(FileInfo from, DirectoryInfo to)
+        public static ApkFile Extract(FileInfo from, DirectoryInfo to, byte xorWith = 0x00)
         {
-            ZipExtractor.Extract(from, to);
+            ZipExtractor.Extract(from, to, xorWith);
             return new ApkFile();
         }
 

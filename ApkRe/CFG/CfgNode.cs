@@ -10,10 +10,15 @@ namespace com.rackham.ApkRe.CFG
     internal class CfgNode : IGraphNode
     {
         #region CONSTRUCTORS
+#if DBGCFG
+        internal CfgNode(bool debugCfg = false)
+#else
         internal CfgNode()
+#endif
         {
 #if DBGCFG
             lock (typeof(CfgNode)) { NodeId = NextNodeId++; }
+            DebugEnabled = debugCfg;
 #endif
             return;
         }
@@ -26,7 +31,7 @@ namespace com.rackham.ApkRe.CFG
         }
 
 #if DBGCFG
-        internal static bool DebugEnabled { get; set; }
+        internal bool DebugEnabled { get; set; }
 #endif
 
         /// <summary>Check if this node is an entry point into the graph. An entry point
@@ -136,7 +141,6 @@ namespace com.rackham.ApkRe.CFG
                 foreach (CfgNode scannedNode in result.Successors) {
                     if (alreadyScanned.Contains(scannedNode)) { continue; }
                     if (!pendingNodes.Contains(scannedNode)) {
-                        if (39 == scannedNode.NodeId) { int j = 1; }
                         pendingNodes.Add(scannedNode);
                     }
                 }
@@ -239,7 +243,10 @@ namespace com.rackham.ApkRe.CFG
                 throw new InvalidOperationException();
             }
 #if DBGCFG
-            if (DebugEnabled && (null != predecessor) && (null != successor)) {
+            if (   (null != predecessor)
+                && (null != successor)
+                && (predecessor.DebugEnabled || successor.DebugEnabled))
+            {
                 Console.WriteLine("[{0}] -> [{1}]", predecessor.NodeId, successor.NodeId);
             }
 #endif

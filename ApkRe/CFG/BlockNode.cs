@@ -10,7 +10,12 @@ namespace com.rackham.ApkRe.CFG
     internal class BlockNode : CfgNode
     {
         #region CONSTRUCTORS
+#if DBGCFG
+        internal BlockNode(bool debugCfg = false)
+            : base(debugCfg)
+#else
         internal BlockNode()
+#endif
         {
             return;
         }
@@ -130,7 +135,7 @@ namespace com.rackham.ApkRe.CFG
             int rangeSize = _instructions.Count - splitIndex;
             DalvikInstruction[] movedRange = new DalvikInstruction[rangeSize];
             this._instructions.CopyTo(splitIndex, movedRange, 0, movedRange.Length);
-            BlockNode result = new BlockNode();
+            BlockNode result = new BlockNode(this.DebugEnabled);
             result._instructions = new List<DalvikInstruction>();
             result._instructions.AddRange(movedRange);
             this._instructions.RemoveRange(splitIndex, rangeSize);
@@ -144,6 +149,7 @@ namespace com.rackham.ApkRe.CFG
             // We must also transfer existing successors from the splited block to the
             // newly created one.
             base.TransferSuccessors(result);
+            // This link MUST occur after successors transfer.
             CfgNode.Link(this, result);
             return result;
         }

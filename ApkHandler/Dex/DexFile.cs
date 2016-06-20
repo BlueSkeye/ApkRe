@@ -4,12 +4,18 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
+using com.rackham.ApkHandler;
 using com.rackham.ApkHandler.API;
 
 namespace com.rackham.ApkHandler.Dex
 {
     public class DexFile : IResolver
     {
+        static DexFile()
+        {
+            ColonSeparatorAsArray = new string[] { "::" };
+        }
+
         #region PROPERTIES
         internal Header Header { get; set; }
 
@@ -85,13 +91,79 @@ namespace com.rackham.ApkHandler.Dex
             yield break;
         }
 
+        /// <summary></summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        /// <remarks>The name is expeected to be properly decorated with a leading
+        /// uppercase L and a trailing dot comma sign.</remarks>
+        public IClass FindClass(string name)
+        {
+            if (string.IsNullOrEmpty(name)) { throw new ArgumentException(); }
+            IClass result = null;
+            string[] nameItems = name.Split(ColonSeparatorAsArray, StringSplitOptions.None);
+            foreach(string nameItem in nameItems) {
+                if (string.Empty == nameItem) {
+                    throw new ArgumentException();
+                }
+            }
+            foreach(IClass candidate in EnumerateClasses()) {
+                IClass scannedClass = candidate;
+                int nameItemIndex = nameItems.Length - 1;
+                string candidateName = nameItems[nameItemIndex];
+                if (scannedClass.Name != candidateName) { continue; }
+                if (0 > --nameItemIndex) {
+                    if (null != scannedClass.SuperClass) { continue; }
+                }
+                IClass candidateSuperClass = scannedClass.SuperClass;
+                while ((0 <= nameItemIndex) && (null != candidateSuperClass)) {
+                    if (candidateSuperClass.Name != nameItems[nameItemIndex]) {
+                        break;
+                    }
+                    nameItemIndex--;
+                    candidateSuperClass = candidateSuperClass.SuperClass;
+                }
+                if ((0 <= nameItemIndex) || (null != candidateSuperClass)) { continue; }
+                if (null != result) {
+                    throw new InvalidOperationException(
+                        string.Format(Messages.AmbiguousTypeName, name));
+                }
+                result = candidate;
+            }
+            return result;
+        }
+
+        private IMethod FindMethod(string name)
+        {
+            if (string.IsNullOrEmpty(name)) { throw new ArgumentException(); }
+            IMethod result = null;
+            int lastSplitIndex = name.LastIndexOf("::");
+            if (   (0 == lastSplitIndex)
+                || (-1 == lastSplitIndex)
+                || (name.Length <= (lastSplitIndex + 2)))
+            {
+                throw new ArgumentException();
+            }
+            string methodName = name.Substring(lastSplitIndex + 2);
+            string className = name.Substring(0, lastSplitIndex);
+            IClass owningClass = FindClass(className);
+            if (null == owningClass) { return null; }
+
+            throw new NotImplementedException();
+            return result;
+        }
+
         private KnownType FindKnownType(string fullName)
         {
+            KnownType result = null;
             foreach (KnownType candidate in this.Types) {
                 if (fullName != candidate.FullName) { continue; }
-                return candidate;
+                if (null != result) {
+                    throw new InvalidOperationException(
+                        string.Format(Messages.AmbiguousTypeName, fullName));
+                }
+                result = candidate;
             }
-            return null;
+            return result;
         }
 
         /// <summary>Validate given index as being in the <see cref="TypeNames"/>
@@ -229,7 +301,7 @@ namespace com.rackham.ApkHandler.Dex
                 string className = scannedItem.ClassName;
                 IClass owner = null;
                 foreach (ClassDefinition scannedClass in this.Classes) {
-                    if (scannedClass.FullName == className) {
+                    if (scannedClass.Name == className) {
                         owner = scannedClass;
                         break;
                     }
@@ -1202,6 +1274,7 @@ namespace com.rackham.ApkHandler.Dex
         #endregion
 
         #region FIELDS
+        private static readonly string[] ColonSeparatorAsArray;
         private Dictionary<string, IClass> _externalClasses = new Dictionary<string, IClass>();
         #endregion
 
@@ -1283,58 +1356,32 @@ namespace com.rackham.ApkHandler.Dex
             Boolean = 31,
         }
 
-        private class ExternalClass : IClass
+        private class ExternalClass : BaseClassDefinition, IClass, IAnnotatable
         {
             #region CONSTRUCTORS
             internal ExternalClass(string fullName)
+                : base(fullName)
             {
-                FullName = fullName;
+                return;
             }
             #endregion
 
             #region PROPERTIES
-            public AccessFlags Access
+            public override AccessFlags Access
             {
                 get { return (AccessFlags)0; }
-            }
-
-            public string FullName { get; private set; }
-
-            public bool IsAbstract
-            {
-                get { return false; }
-            }
-
-            public bool IsEnumeration
-            {
-                get { return false; }
-            }
-
-            public bool IsInterface
-            {
-                get { return false; }
-            }
-
-            public IClass SuperClass
-            {
-                get { return null; }
             }
             #endregion
 
             #region METHODS
-            public IEnumerable<IField> EnumerateFields()
+            internal override void SetBaseClass(IClass value)
             {
-                yield break;
+                throw new InvalidOperationException();
             }
 
-            public IEnumerable<string> EnumerateImplementedInterfaces()
+            internal override void SetImplementedInterfaces(List<string> value)
             {
-                yield break;
-            }
-
-            public IEnumerable<IMethod> EnumerateMethods()
-            {
-                yield break;
+                throw new InvalidOperationException();
             }
             #endregion
         }

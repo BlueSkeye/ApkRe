@@ -38,6 +38,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AnnotationBase.cs" />
+    <Compile Include="API\IAnnotatable.cs" />
+    <Compile Include="API\IAnnotation.cs" />
     <Compile Include="API\IClass.cs" />
     <Compile Include="API\IField.cs" />
     <Compile Include="API\IGuardHandler.cs" />
@@ -50,9 +53,11 @@
     <Compile Include="ApkFile.cs" />
     <Compile Include="ApkFormatException.cs" />
     <Compile Include="ApkFormatNotSupportedException.cs" />
+    <Compile Include="DalvikException.cs" />
     <Compile Include="Dex\Annotation.cs" />
     <Compile Include="Dex\AnnotationElement.cs" />
     <Compile Include="Dex\AnnotationVisibility.cs" />
+    <Compile Include="Dex\BaseAnnotableObject.cs" />
     <Compile Include="Dex\BinaryReaderWithConsistency.cs" />
     <Compile Include="Dex\CC\ChunkType.cs" />
     <Compile Include="Dex\CC\CompressedFormatException.cs" />
@@ -94,6 +99,11 @@
     <Compile Include="Dex\Prototype.cs" />
     <Compile Include="Dex\TryBlock.cs" />
     <Compile Include="Helpers.cs" />
+    <Compile Include="Messages.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Messages.resx</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Zip\CentralDirectoryFileHeader.cs" />
     <Compile Include="Zip\CompressionMethod.cs" />
@@ -113,6 +123,12 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="VM\" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Messages.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Messages.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

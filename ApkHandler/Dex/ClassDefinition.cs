@@ -60,7 +60,7 @@ namespace com.rackham.ApkHandler.Dex
             return;
         }
 
-        public IEnumerable<IField> EnumerateFields()
+        public override IEnumerable<IField> EnumerateFields()
         {
             if (null != StaticFields) {
                 foreach (IField item in StaticFields) { yield return item; }
@@ -71,7 +71,7 @@ namespace com.rackham.ApkHandler.Dex
             yield break;
         }
 
-        public IEnumerable<IMethod> EnumerateMethods()
+        public override IEnumerable<IMethod> EnumerateMethods()
         {
             if (null != VirtualMethods) {
                 foreach (IMethod item in VirtualMethods) { yield return item; }
@@ -80,6 +80,16 @@ namespace com.rackham.ApkHandler.Dex
                 foreach (IMethod item in DirectMethods) { yield return item; }
             }
             yield break;
+        }
+
+        public override IMethod FindMethod(string fullName)
+        {
+            foreach (Method candidate in this.EnumerateMethods()) {
+                if (Helpers.BuildMethodDeclarationString(candidate) == fullName) {
+                    return candidate;
+                }
+            }
+            return null;
         }
         #endregion
     }

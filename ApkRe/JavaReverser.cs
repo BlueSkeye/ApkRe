@@ -26,7 +26,21 @@ namespace com.rackham.ApkRe
         }
         #endregion
 
-        #region METHODS
+        #region PROPERTIES
+        public static bool CfgDebuggingAvailable
+        {
+            get
+            {
+#if DBGCFG
+                return true;
+#else
+                return false;
+#endif
+            }
+        }
+#endregion
+
+#region METHODS
         /// <summary>Build the class header source code. This encompass :
         /// - The class package definition.
         /// - The import definitions
@@ -41,11 +55,12 @@ namespace com.rackham.ApkRe
             StringBuilder resultBuilder = new StringBuilder();
             string thisClassNamespace;
             string thisClassCanonicName =
-                Helpers.GetCanonicTypeName(definition.FullName, out thisClassNamespace);
+                com.rackham.ApkHandler.Helpers.GetCanonicTypeName(definition.Name, out thisClassNamespace);
 
             // Resolve implemented interfaces namespaces.
             List<string> simpleInterfaceNames = new List<string>();
-            string simpleBaseClassName = GetCanonicTypeName(definition.SuperClass.FullName, namespaceByImportedType);
+            string simpleBaseClassName = GetCanonicTypeName(definition.SuperClass.Name,
+                namespaceByImportedType);
 
             foreach (string fullInterfaceName in definition.EnumerateImplementedInterfaces()) {
                 string simpleInterfaceName = GetCanonicTypeName(fullInterfaceName, namespaceByImportedType);
@@ -78,7 +93,7 @@ namespace com.rackham.ApkRe
             Dictionary<string, string> namespaceByImportedType)
         {
             string canonicFieldType =
-                GetCanonicTypeName(field.Class.FullName, namespaceByImportedType);
+                GetCanonicTypeName(field.Class.Name, namespaceByImportedType);
             return string.Format("{0} {1} {2};",
                 Helpers.GetModifiersSourceCode(field.AccessFlags), canonicFieldType,
                 field.Name);
@@ -110,8 +125,10 @@ namespace com.rackham.ApkRe
                     pendingInstructionsOffset.Add(addedOffset);
                 }
             }
-            Console.WriteLine("Decoding '{0}' method bytecode on {1} bytes starting at 0x{2:X8}.",
-                method.Name, byteCode.Length, method.ByteCodeRawAddress);
+            Console.WriteLine(
+                "Decoding '{0}' method bytecode on {1} bytes starting at 0x{2:X8}.",
+                Helpers.BuildMethodDeclarationString(method), byteCode.Length,
+                method.ByteCodeRawAddress);
             
             while (0 < pendingInstructionsOffset.Count) {
                 uint opCodeIndex = pendingInstructionsOffset[0];
@@ -250,7 +267,7 @@ namespace com.rackham.ApkRe
             string alreadyRegisteredNamespace;
             string candidateNamespace;
             string simpleClassName =
-                Helpers.GetCanonicTypeName(fullDalvikTypeName, out candidateNamespace);
+                com.rackham.ApkHandler.Helpers.GetCanonicTypeName(fullDalvikTypeName, out candidateNamespace);
 
             if (null == candidateNamespace) { return simpleClassName; }
             if (!namespaceByImportedType.TryGetValue(simpleClassName, out alreadyRegisteredNamespace)) {
@@ -270,7 +287,8 @@ namespace com.rackham.ApkRe
 
             foreach (IClass item in _input.EnumerateClasses()) {
                 int reversedMethodsCount;
-                Console.WriteLine(item.FullName);
+                Console.WriteLine("Reversing class '{0}' ----------------------------------",
+                    item.FullName);
                 ReverseClass(item, out reversedMethodsCount);
                 totalReversedMethodsCount += reversedMethodsCount;
                 reversedClassesCount++;
@@ -280,8 +298,6 @@ namespace com.rackham.ApkRe
             return;
         }
 
-        private static int _totalCircuitsFound = 0;
-
         /// <summary>Reverse a single class and output result in a file named from
         /// the class name and located in the appropriate directory reflecting the
         /// class package name.</summary>
@@ -290,7 +306,7 @@ namespace com.rackham.ApkRe
         /// with the count of methods reversed within this class.</param>
         private void ReverseClass(IClass item, out int reversedMethodsCount)
         {
-            FileInfo targetFile = _treeHandler.GetClassFileName(item.FullName);
+            FileInfo targetFile = _treeHandler.GetClassFileName(item.Name);
             List<string> headerSourceCode = new List<string>();
             List<string> methodsSourceCode = new List<string>();
             StringBuilder methodsSourceCodeBuilder = new StringBuilder();
@@ -303,12 +319,22 @@ namespace com.rackham.ApkRe
                     fieldsSourceCodeBuilder.AppendLine(
                         BuildFieldDefinition(field, namespaceByImportedType));
                 }
+#if DBGCFG
+                bool debugClassCfg = item.IsAnnotatedWith(CfgDebugAnnotation.Id);
+#endif
                 foreach (IMethod method in item.EnumerateMethods()) {
+#if DBGCFG
+                    bool debugMethodCfg = debugClassCfg || method.IsAnnotatedWith(CfgDebugAnnotation.Id);
+#endif
                     reversedMethodsCount++;
                     // Extract all instructions from the method byte code.
                     DalvikInstruction[] sparseInstructions = BuildInstructionList(method, _objectResolver);
                     // Construct a first version of the CFG graph.
-                    CfgNode methodRootCfgNode = CfgBuilder.BuildBasicTree(method, sparseInstructions);
+                    CfgNode methodRootCfgNode = CfgBuilder.BuildBasicTree(method, sparseInstructions
+#if DBGCFG
+                        , debugMethodCfg
+#endif
+                        );
                     // Ensure each catch block from each try block starts on a block boundary.
                     // Eventually create additional block to enforce the constraint.
                     foreach (ITryBlock scannedBlock in method.EnumerateTryBlocks()) {
@@ -357,7 +383,6 @@ namespace com.rackham.ApkRe
                     writer.WriteLine("}");
                 }
             }
-            catch (Exception e) { throw; }
             finally { if (null != stream) { stream.Close(); } }
         }
 
@@ -395,29 +420,29 @@ namespace com.rackham.ApkRe
 
         //    return WalkContinuation.Normal;
         //}
-        #endregion
+#endregion
 
-        #region FIELDS
+#region FIELDS
         private DexFile _input;
         private IResolver _objectResolver;
         private SourceCodeTreeHandler _treeHandler;
-        #endregion
+#endregion
 
-        #region INNER CLASSES
+#region INNER CLASSES
         private class SourceCodeWalkerContext
         {
-            #region CONSTRUCTORS
+#region CONSTRUCTORS
             internal SourceCodeWalkerContext(StringBuilder builder)
             {
                 Builder = builder;
                 return;
             }
-            #endregion
+#endregion
 
-            #region PROPERTIES
+#region PROPERTIES
             internal StringBuilder Builder { get; private set; }
-            #endregion
+#endregion
         }
-        #endregion
+#endregion
     }
 }

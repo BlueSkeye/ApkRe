@@ -37,6 +37,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AssertionException.cs" />
     <Compile Include="ByteCode\ArrayConstructionInstruction.cs" />
     <Compile Include="ByteCode\ArrayOperationInstruction.cs" />
     <Compile Include="AST\AstBuilder.cs" />
@@ -51,6 +52,7 @@
     <Compile Include="AST\GuardedNode.cs" />
     <Compile Include="ByteCode\DalvikInstruction.cs" />
     <Compile Include="AST\TryNode.cs" />
+    <Compile Include="CfgDebugAnnotation.cs" />
     <Compile Include="CFG\BlockNode.cs" />
     <Compile Include="CFG\CfgBuilder.cs" />
     <Compile Include="CFG\CfgNode.cs" />
@@ -58,6 +60,7 @@
     <Compile Include="CFG\IGraphNode.cs" />
     <Compile Include="CFG\CyclingGraphNode.cs" />
     <Compile Include="CFG\DirectedGraphCycleFinder.cs" />
+    <Compile Include="Constants.cs" />
     <Compile Include="Delegates.cs" />
     <Compile Include="ByteCode\InstanceConstructionInstruction.cs" />
     <Compile Include="ByteCode\InstanceFieldInstruction.cs" />

@@ -11,6 +11,35 @@ namespace com.rackham.ApkRe.CFG
     internal static class CfgBuilder
     {
         #region METHODS
+#if DBGCFG
+        /// <summary>A debugging oriented method, that helps assessing the consistency
+        /// of the given array. Throws an exception if inconsistency is found.</summary>
+        /// <param name="blocksPerOffset"></param>
+        private static void AssertConsistency(BlockNode[] blocksPerOffset,
+            List<CfgNode> knownNodes = null)
+        {
+            int arrayLength = blocksPerOffset.Length;
+            for(int index = 0; index < arrayLength; index++) {
+                BlockNode targetBlock = blocksPerOffset[index];
+                if (null == targetBlock) { continue; }
+                if (targetBlock.IsCovering((uint)index, 1)) { continue; }
+                StringBuilder builder = new StringBuilder();
+                builder.AppendFormat(
+                    "Target block #{0} fails to cover code offset 0x{1:X4} \r\n",
+                    targetBlock.NodeId, index);
+                if (null != knownNodes) {
+                    builder.Append("Known nodes\r\n");
+                    foreach (CfgNode scannedNode in knownNodes) {
+                        builder.AppendFormat("#{0} : {1}\r\n",
+                            scannedNode.NodeId, scannedNode.AdditionalInfo);
+                    }
+                }
+                string exceptionMessage = builder.ToString();
+                throw new AssertionException(exceptionMessage);
+            }
+            return;
+        }
+#endif
         /// <summary>Make sure the given parameter is not a null reference and
         /// at the same time is an entry node, otherwise throw an exception.</summary>
         /// <param name="entryNode">Candidate entry node.</param>
@@ -25,21 +54,23 @@ namespace com.rackham.ApkRe.CFG
         /// <param name="method"></param>
         /// <param name="rootAstNode"></param>
         /// <returns></returns>
-        internal static CfgNode BuildBasicTree(IMethod method, DalvikInstruction[] instructions)
-        {
-            CfgNode result = new CfgNode();
-
+        internal static CfgNode BuildBasicTree(IMethod method, DalvikInstruction[] instructions,
 #if DBGCFG
-            uint debugAddress =
-                // 0x000A198;
-                0xFFFFFFFF;
-            CfgNode.DebugEnabled = (debugAddress == method.ByteCodeRawAddress);
-            if (debugAddress == method.ByteCodeRawAddress) { int i = 1; }
+            bool debugMethodCfg = false
 #endif
+            )
+        {
+            CfgNode result =
+#if DBGCFG
+                new CfgNode(debugMethodCfg);
+#else
+                new CfgNode();
+#endif
+
             CreateBasicBlocks(result, method, instructions);
             EnsureExitNodeUniqueness(result);
 #if DBGCFG
-            result.DumpGraph();
+            if (debugMethodCfg) { result.DumpGraph(); }
 #endif
             return result;
         }
@@ -54,17 +85,23 @@ namespace com.rackham.ApkRe.CFG
         private static void CreateBasicBlocks(CfgNode rootNode, IMethod method,
             DalvikInstruction[] sparseInstructions)
         {
+#if DBGCFG
+            List<CfgNode> methodNodes = new List<CfgNode>();
+            methodNodes.Add(rootNode);
+#endif
             List<BlockNode> unreachableBlocks = new List<BlockNode>();
             BlockNode currentBlock = null;
+            // An array that maps each bytecode byte to it's owning block if any.
             BlockNode[] blocksPerOffset = new BlockNode[method.ByteCodeSize];
             blocksPerOffset[0] = currentBlock;
+            bool cfgDebuggingEnabled = rootNode.DebugEnabled;
 
             // Create basic blocks. These are set of consecutive instructions with
             // each instruction having a single successor that is the next instruction.
             foreach (DalvikInstruction scannedInstruction in sparseInstructions) {
                 if (null == scannedInstruction) { continue; }
 #if DBGCFG
-                if (CfgNode.DebugEnabled) {
+                if (cfgDebuggingEnabled) {
                     Console.WriteLine("@{0:X4} {1}", scannedInstruction.MethodRelativeOffset,
                         scannedInstruction.GetType().Name);
                 }
@@ -74,15 +111,25 @@ namespace com.rackham.ApkRe.CFG
                     // block defined for the current offset or we must create a new one.
                     currentBlock = blocksPerOffset[scannedInstruction.MethodRelativeOffset];
                     if (null == currentBlock) {
-                        currentBlock = new BlockNode();
+                        currentBlock = new BlockNode(cfgDebuggingEnabled);
+#if DBGCFG
+                        methodNodes.Add(currentBlock);
+#endif
                         blocksPerOffset[scannedInstruction.MethodRelativeOffset] = currentBlock;
                         unreachableBlocks.Add(currentBlock);
 #if DBGCFG
-                        if (CfgNode.DebugEnabled) { Console.WriteLine("Created unreachable block #{0}", currentBlock.NodeId); }
+                        AssertConsistency(blocksPerOffset, methodNodes);
+                        if (cfgDebuggingEnabled) {
+                            Console.WriteLine("Created unreachable block #{0}", currentBlock.NodeId);
+                        }
 #endif
                     }
 #if DBGCFG
-                    else { if (CfgNode.DebugEnabled) {Console.WriteLine("Reusing block #{0}", currentBlock.NodeId); } }
+                    else {
+                        if (cfgDebuggingEnabled) {
+                            Console.WriteLine("Reusing block #{0}", currentBlock.NodeId);
+                        }
+                    }
 #endif
                 }
                 else {
@@ -90,10 +137,13 @@ namespace com.rackham.ApkRe.CFG
                     // block for the current offset.
                     BlockNode alreadyDefined = blocksPerOffset[scannedInstruction.MethodRelativeOffset];
 
-                    if ((null != alreadyDefined) && !object.ReferenceEquals(currentBlock, alreadyDefined)) {
+                    if (   (null != alreadyDefined)
+                        && !object.ReferenceEquals(currentBlock, alreadyDefined))
+                    {
 #if DBGCFG
-                        if (CfgNode.DebugEnabled) {
-                            Console.WriteLine("Linking block #{0} to block #{1} and switching to the later",
+                        if (cfgDebuggingEnabled) {
+                            Console.WriteLine(
+                                "Linking block #{0} to block #{1} and switching to the later",
                                 currentBlock.NodeId, alreadyDefined.NodeId);
                         }
 #endif
@@ -102,20 +152,26 @@ namespace com.rackham.ApkRe.CFG
                         currentBlock = alreadyDefined;
                     }
 #if DBGCFG
-                    else { if (CfgNode.DebugEnabled) {Console.WriteLine("Continuing with block #{0}", currentBlock.NodeId); } }
+                    else {
+                        if (cfgDebuggingEnabled) {
+                            Console.WriteLine("Continuing with block #{0}", currentBlock.NodeId);
+                        }
+                    }
 #endif
                 }
                 currentBlock.Bind(scannedInstruction);
                 for(uint sizeIndex = 0; sizeIndex < scannedInstruction.BlockSize; sizeIndex++) {
                     int offsetIndex = (int)(scannedInstruction.MethodRelativeOffset + sizeIndex);
-                    if ((null != blocksPerOffset[offsetIndex])
-                        && !object.ReferenceEquals(blocksPerOffset[offsetIndex], currentBlock)) {
+                    if (   (null != blocksPerOffset[offsetIndex])
+                        && !object.ReferenceEquals(blocksPerOffset[offsetIndex], currentBlock))
+                    {
                         throw new ApplicationException();
                     }
                     blocksPerOffset[offsetIndex] = currentBlock;
+#if DBGCFG
+                    AssertConsistency(blocksPerOffset, methodNodes);
+#endif
                 }
-                // Must create a block for each possible target and link current
-                // block to each of those blocks.
                 // Scan other targets if any.
                 uint[] otherOffsets = scannedInstruction.AdditionalTargetMethodOffsets;
                 if (null == otherOffsets) {
@@ -125,37 +181,23 @@ namespace com.rackham.ApkRe.CFG
                     }
                     continue;
                 }
-                // Having other targets force a block reset AND the next instruction to be in
-                // a separate block than the current one, provided the current instruction fails
-                // in sequence.
-                if (scannedInstruction.ContinueInSequence) {
-                    uint nextInstructionOffset = scannedInstruction.MethodRelativeOffset + scannedInstruction.BlockSize;
-                    BlockNode nextBlock = blocksPerOffset[nextInstructionOffset];
-                    if (null == nextBlock) {
-                        nextBlock = new BlockNode();
-                        blocksPerOffset[nextInstructionOffset] = nextBlock;
-#if DBGCFG
-                        if (CfgNode.DebugEnabled) {
-                            Console.WriteLine("Created next block #{0} @{1:X4}",
-                                nextBlock.NodeId, nextInstructionOffset);
-                            Console.WriteLine("Linking block #{0} to block #{1}",
-                                currentBlock.NodeId, nextBlock.NodeId);
-                        }
-#endif
-                        // Link current node and next one.
-                        CfgNode.Link(currentBlock, nextBlock);
-                    }
-                }
+
+                // Must create a block for each possible target and link current
+                // block to each of those blocks.
                 for (int index = 0; index < otherOffsets.Length; index++) {
                     uint targetOffset = otherOffsets[index];
                     BlockNode targetBlock = blocksPerOffset[targetOffset];
 
                     if (null == targetBlock) {
                         // Block doesn't exists yet. Create and register it.
-                        targetBlock = new BlockNode();
+                        targetBlock = new BlockNode(currentBlock.DebugEnabled);
+#if DBGCFG
+                        methodNodes.Add(targetBlock);
+#endif
                         blocksPerOffset[targetOffset] = targetBlock;
 #if DBGCFG
-                        if (CfgNode.DebugEnabled) {
+                        AssertConsistency(blocksPerOffset, methodNodes);
+                        if (targetBlock.DebugEnabled) {
                             Console.WriteLine("Pre-registering block #{0} @{1:X4}",
                                 targetBlock.NodeId, targetOffset);
                             Console.WriteLine("Linking block #{0} to block #{1}",
@@ -167,46 +209,70 @@ namespace com.rackham.ApkRe.CFG
                         continue;
                     }
                     // The target block already exists albeit it may deserve a split.
-                    if (0 == targetOffset) { continue; }
+                    // if (0 == targetOffset) { continue; }
                     BlockNode splitCandidate = targetBlock;
+                    bool splitCandidateIsCurrentBlock =
+                        object.ReferenceEquals(splitCandidate, currentBlock);
+                    bool splitCandidateAlreadyAligned =
+                        !object.ReferenceEquals(blocksPerOffset[targetOffset - 1], splitCandidate);
+                    bool linkCurrentToSplitted = true;
 
                     try {
-                        if (!object.ReferenceEquals(blocksPerOffset[targetOffset - 1], splitCandidate)) {
-                            // The split candidate actually starts at target address. No split required.
+                        if (splitCandidateAlreadyAligned && !splitCandidateIsCurrentBlock) {
+                            // The split candidate actually starts at target address
+                            // and is not the current block. No split required.
                             continue;
                         }
                         // Need a split.
-                        targetBlock = splitCandidate.Split(targetOffset);
+                        if (!splitCandidateAlreadyAligned) {
+                            targetBlock = splitCandidate.Split(targetOffset);
 #if DBGCFG
-                        if (CfgNode.DebugEnabled) {
+                            methodNodes.Add(targetBlock);
+#endif
+                        }
+                        else {
+                            // The target is the first instruction of current block. We
+                            // split the last instruction from the current block.
+                            if (!splitCandidateIsCurrentBlock) { throw new AssertionException(); }
+                            targetBlock = splitCandidate.Split(scannedInstruction.MethodRelativeOffset);
+#if DBGCFG
+                            methodNodes.Add(targetBlock);
+#endif
+                            // From now on consider the newly created block to be the
+                            // current one.
+                            currentBlock = targetBlock;
+                            linkCurrentToSplitted = false;
+                        }
+#if DBGCFG
+                        if (targetBlock.DebugEnabled) {
                             Console.WriteLine("Spliting block #{0} @{1:X4}. Block #{2} created.",
                                 splitCandidate.NodeId, targetOffset, targetBlock.NodeId);
                         }
 #endif
-                        // Update offest to block mapping for new splited block..
+                        // Update offest to block mapping for new splited block.
                         for (int splitIndex = (int)targetOffset; splitIndex < blocksPerOffset.Length; splitIndex++) {
                             if (!object.ReferenceEquals(blocksPerOffset[splitIndex], splitCandidate)) { break; }
                             blocksPerOffset[splitIndex] = targetBlock;
                         }
+#if DBGCFG
+                        AssertConsistency(blocksPerOffset, methodNodes);
+#endif
                     }
                     finally {
+                        if (linkCurrentToSplitted) {
 #if DBGCFG
-                        if (CfgNode.DebugEnabled) {
-                            try
-                            {
+                            if ((null != currentBlock) && currentBlock.DebugEnabled) {
                                 Console.WriteLine("Linking block #{0} to block #{1}",
                                     currentBlock.NodeId, targetBlock.NodeId);
                             }
-                            catch { int i = 1; }
-                        }
 #endif
-                        // Link current node and next one.
-                        CfgNode.Link(currentBlock, targetBlock);
-                        if (unreachableBlocks.Contains(targetBlock))
-                        {
+                            // Link current node and next one.
+                            CfgNode.Link(currentBlock, targetBlock);
+                        }
+                        if (unreachableBlocks.Contains(targetBlock)) {
                             unreachableBlocks.Remove(targetBlock);
 #if DBGCFG
-                            if (CfgNode.DebugEnabled) {
+                            if (targetBlock.DebugEnabled) {
                                 Console.WriteLine("Previously unreachable block #{0} now reachable.",
                                     targetBlock.NodeId);
                             }
@@ -214,10 +280,38 @@ namespace com.rackham.ApkRe.CFG
                         }
                     }
                 }
+
+                // Having other targets force a block reset AND the next instruction to be in
+                // a separate block than the current one, provided the current instruction fails
+                // in sequence.
+                if (scannedInstruction.ContinueInSequence) {
+                    uint nextInstructionOffset =
+                        scannedInstruction.MethodRelativeOffset + scannedInstruction.BlockSize;
+                    BlockNode nextBlock = blocksPerOffset[nextInstructionOffset];
+                    if (null == nextBlock) {
+                        nextBlock = new BlockNode(currentBlock.DebugEnabled);
+#if DBGCFG
+                        methodNodes.Add(nextBlock);
+#endif
+                        blocksPerOffset[nextInstructionOffset] = nextBlock;
+#if DBGCFG
+                        AssertConsistency(blocksPerOffset, methodNodes);
+                        if (nextBlock.DebugEnabled) {
+                            Console.WriteLine("Created next block #{0} @{1:X4}",
+                                nextBlock.NodeId, nextInstructionOffset);
+                            Console.WriteLine("Linking block #{0} to block #{1}",
+                                currentBlock.NodeId, nextBlock.NodeId);
+                        }
+#endif
+                    }
+                    // Link current node and next one.
+                    CfgNode.Link(currentBlock, nextBlock);
+                }
+                // Next block will always be different from the current one.
                 currentBlock = null;
             }
 #if DBGCFG
-            if (CfgNode.DebugEnabled) { Console.WriteLine("Basic blocks creation done."); }
+            if (cfgDebuggingEnabled) { Console.WriteLine("Basic blocks creation done."); }
 #endif
             // Link allunreachable blocks to the root node.
             foreach (BlockNode scannedBlock in unreachableBlocks) { CfgNode.Link(rootNode, scannedBlock); }

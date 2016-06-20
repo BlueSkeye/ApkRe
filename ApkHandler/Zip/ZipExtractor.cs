@@ -12,7 +12,7 @@ namespace com.rackham.ApkHandler.Zip
     internal class ZipExtractor
     {
         #region METHODS
-        internal static void Extract(FileInfo from, DirectoryInfo to)
+        internal static void Extract(FileInfo from, DirectoryInfo to, byte xorWith = 0x00)
         {
             using (FileStream input = File.Open(from.FullName, FileMode.Open, FileAccess.Read, FileShare.Read)) {
                 EndOfCentralDirectory endOfCentralDirectory = LoadEndOfCentralDirectory(input);
@@ -34,14 +34,16 @@ namespace com.rackham.ApkHandler.Zip
                                 }
                                 outputFilePath = Helpers.EnsurePath(to, localHeader.FileName);
                                 using (FileStream output = File.Open(outputFilePath, FileMode.Create, FileAccess.Write)) {
-                                    Helpers.StreamCopy(input, output, (int)localHeader.CompressedSize);
+                                    Helpers.StreamCopy(input, output, (int)localHeader.CompressedSize,
+                                        true, xorWith);
                                 }
                                 break;
                             case CompressionMethod.Deflated:
                                 outputFilePath = Helpers.EnsurePath(to, localHeader.FileName);
                                 using (FileStream output = File.Open(outputFilePath, FileMode.Create, FileAccess.Write)) {
                                     using (DeflateStream deflater = new DeflateStream(input, CompressionMode.Decompress, true)) {
-                                        Helpers.StreamCopy(deflater, output, (int)localHeader.UncompressedSize, false);
+                                        Helpers.StreamCopy(deflater, output, (int)localHeader.UncompressedSize,
+                                            false, xorWith);
                                     }
                                 }
                                 break;

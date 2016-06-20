@@ -1,24 +1,40 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Text;
 
 using com.rackham.ApkHandler.API;
 
 namespace com.rackham.ApkHandler.Dex
 {
-    internal class BaseClassDefinition : IClass
+    internal class BaseClassDefinition : BaseAnnotableObject, IClass, IAnnotatable
     {
         #region CONSTRUCTORS
         internal BaseClassDefinition(string fullName)
         {
-            FullName = Helpers.GetUndecoratedClassName(fullName);
+            Name = Helpers.GetUndecoratedClassName(fullName);
         }
         #endregion
 
         #region PROPERTIES
-        public AccessFlags Access { get; internal set; }
+        public virtual AccessFlags Access { get; internal set; }
 
-        public string FullName { get; private set; }
+        public string FullName
+        {
+            get
+            {
+                if (null == _fullName) {
+                    StringBuilder builder = new StringBuilder();
+                    builder.Append(Name);
+                    for(IClass superClass = SuperClass; null != superClass; superClass = superClass.SuperClass) {
+                        builder.Insert(0, "::");
+                        builder.Insert(0, superClass.Name);
+                    }
+                    _fullName = builder.ToString();
+                }
+                return _fullName;
+            }
+        }
 
         public bool IsAbstract
         {
@@ -35,33 +51,45 @@ namespace com.rackham.ApkHandler.Dex
             get { return (0 != (Access & AccessFlags.Interface)); }
         }
 
+        public string Name { get; private set; }
+
+        public IClass OuterClass
+        {
+            get { return _outerClass; }
+        }
+
         public IClass SuperClass
         {
             get { return _superClass; }
         }
         #endregion
 
+
         #region METHODS
-        public IEnumerable<IField> EnumerateFields()
+        public virtual IEnumerable<IField> EnumerateFields()
         {
             throw new NotImplementedException();
         }
 
         public IEnumerable<string> EnumerateImplementedInterfaces()
         {
-            if (null != _implementedInterfaces)
-            {
+            if (null != _implementedInterfaces) {
                 foreach (string result in _implementedInterfaces) { yield return result; }
             }
             yield break;
         }
 
-        public IEnumerable<IMethod> EnumerateMethods()
+        public virtual IEnumerable<IMethod> EnumerateMethods()
         {
             throw new NotImplementedException();
         }
 
-        internal void SetBaseClass(IClass value)
+        public virtual IMethod FindMethod(string fullName)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal virtual void SetBaseClass(IClass value)
         {
             if (null != _superClass) { throw new InvalidOperationException(); }
             if (null == value) { throw new ArgumentNullException(); }
@@ -69,7 +97,7 @@ namespace com.rackham.ApkHandler.Dex
             return;
         }
 
-        internal void SetImplementedInterfaces(List<string> value)
+        internal virtual void SetImplementedInterfaces(List<string> value)
         {
             if (null != _implementedInterfaces) { throw new InvalidOperationException(); }
             if (null == value) { throw new ArgumentNullException(); }
@@ -79,7 +107,9 @@ namespace com.rackham.ApkHandler.Dex
         #endregion
 
         #region FIELDS
+        private string _fullName;
         private List<string> _implementedInterfaces;
+        private IClass _outerClass;
         private IClass _superClass;
         #endregion
     }

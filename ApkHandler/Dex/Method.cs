@@ -7,7 +7,7 @@ using com.rackham.ApkHandler.API;
 
 namespace com.rackham.ApkHandler.Dex
 {
-    internal class Method : IMethod, IClassMember
+    internal class Method : BaseAnnotableObject, IAnnotatable, IMethod, IClassMember
     {
         #region CONSTRUCTORS
         internal Method(string className, string methodName, Prototype methodPrototype)
