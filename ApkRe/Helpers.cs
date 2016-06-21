@@ -42,7 +42,7 @@ namespace com.rackham.ApkRe
                 second = x;
             }
 
-            return (first.MethodRelativeOffset + first.BlockSize) == second.MethodRelativeOffset;
+            return (first.MethodRelativeOffset + first.InstructionSize) == second.MethodRelativeOffset;
         }
 
         internal static string BuildMethodDeclarationString(IMethod from, bool demangle = true)

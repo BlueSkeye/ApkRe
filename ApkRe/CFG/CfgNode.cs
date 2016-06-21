@@ -237,6 +237,46 @@ namespace com.rackham.ApkRe.CFG
             return result;
         }
 
+        internal bool IsPredecessor(BlockNode from)
+        {
+            if (null == from) { throw new ArgumentNullException(); }
+            bool result = (null != _successors) && _successors.Contains(from);
+#if DBGCFG
+            if (   (   result
+                    && (   (null == from._predecessors)
+                        || !from._predecessors.Contains(this)))
+                || (   !result
+                    && (null != from._predecessors)
+                    && from._predecessors.Contains(this)))
+            {
+                throw new AssertionException(string.Format(
+                    "Non matching predecessor/successor between nodes #{0} and #{1}.",
+                    this.NodeId, from.NodeId));
+            }
+#endif
+            return result;
+        }
+
+        internal bool IsSuccessor(BlockNode from)
+        {
+            if (null == from) { throw new ArgumentNullException(); }
+            bool result = (null != _predecessors) && _predecessors.Contains(from);
+#if DBGCFG
+            if (   (   result
+                    && (   (null == from._successors)
+                        || !from._successors.Contains(this)))
+                || (   !result
+                    && (null != from._successors)
+                    && from._successors.Contains(this)))
+            {
+                throw new AssertionException(string.Format(
+                    "Non matching predecessor/successor between nodes #{0} and #{1}.",
+                    this.NodeId, from.NodeId));
+            }
+#endif
+            return result;
+        }
+
         internal static void Link(CfgNode predecessor, CfgNode successor)
         {
             if (object.ReferenceEquals(predecessor, successor)) {
@@ -281,14 +321,14 @@ namespace com.rackham.ApkRe.CFG
             }
             return;
         }
-        #endregion
+#endregion
 
-        #region FIELDS
+#region FIELDS
         private List<CfgNode> _predecessors;
         private List<CfgNode> _successors;
 #if DBGCFG
         private static uint NextNodeId = 1;
 #endif
-        #endregion
+#endregion
     }
 }

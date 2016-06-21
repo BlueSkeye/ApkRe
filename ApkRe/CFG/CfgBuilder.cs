@@ -22,11 +22,15 @@ namespace com.rackham.ApkRe.CFG
             for(int index = 0; index < arrayLength; index++) {
                 BlockNode targetBlock = blocksPerOffset[index];
                 if (null == targetBlock) { continue; }
-                if (targetBlock.IsCovering((uint)index, 1)) { continue; }
+                if (   targetBlock.IsCovering((uint)index, 1)
+                    && (object.ReferenceEquals(targetBlock, blocksPerOffset[index])))
+                {
+                    continue;
+                }
                 StringBuilder builder = new StringBuilder();
                 builder.AppendFormat(
-                    "Target block #{0} fails to cover code offset 0x{1:X4} \r\n",
-                    targetBlock.NodeId, index);
+                    "Target block #{0} fails to cover code offset 0x{1:X4}. Offset mapped to block #{2}\r\n",
+                    targetBlock.NodeId, index, targetBlock.NodeId);
                 if (null != knownNodes) {
                     builder.Append("Known nodes\r\n");
                     foreach (CfgNode scannedNode in knownNodes) {
@@ -87,10 +91,10 @@ namespace com.rackham.ApkRe.CFG
         {
 #if DBGCFG
             List<CfgNode> methodNodes = new List<CfgNode>();
-            methodNodes.Add(rootNode);
 #endif
             List<BlockNode> unreachableBlocks = new List<BlockNode>();
             BlockNode currentBlock = null;
+            bool firstBlock = true;
             // An array that maps each bytecode byte to it's owning block if any.
             BlockNode[] blocksPerOffset = new BlockNode[method.ByteCodeSize];
             blocksPerOffset[0] = currentBlock;
@@ -116,13 +120,22 @@ namespace com.rackham.ApkRe.CFG
                         methodNodes.Add(currentBlock);
 #endif
                         blocksPerOffset[scannedInstruction.MethodRelativeOffset] = currentBlock;
-                        unreachableBlocks.Add(currentBlock);
+                        if (firstBlock) {
+                            CfgNode.Link(rootNode, currentBlock);
 #if DBGCFG
-                        AssertConsistency(blocksPerOffset, methodNodes);
-                        if (cfgDebuggingEnabled) {
-                            Console.WriteLine("Created unreachable block #{0}", currentBlock.NodeId);
-                        }
+                            Console.WriteLine("Created first block #{0}", currentBlock.NodeId);
 #endif
+                            firstBlock = false;
+                        }
+                        else {
+                            unreachableBlocks.Add(currentBlock);
+#if DBGCFG
+                            AssertConsistency(blocksPerOffset, methodNodes);
+                            if (cfgDebuggingEnabled) {
+                                Console.WriteLine("Created unreachable block #{0}", currentBlock.NodeId);
+                            }
+#endif
+                        }
                     }
 #if DBGCFG
                     else {
@@ -160,7 +173,7 @@ namespace com.rackham.ApkRe.CFG
 #endif
                 }
                 currentBlock.Bind(scannedInstruction);
-                for(uint sizeIndex = 0; sizeIndex < scannedInstruction.BlockSize; sizeIndex++) {
+                for(uint sizeIndex = 0; sizeIndex < scannedInstruction.InstructionSize; sizeIndex++) {
                     int offsetIndex = (int)(scannedInstruction.MethodRelativeOffset + sizeIndex);
                     if (   (null != blocksPerOffset[offsetIndex])
                         && !object.ReferenceEquals(blocksPerOffset[offsetIndex], currentBlock))
@@ -224,35 +237,46 @@ namespace com.rackham.ApkRe.CFG
                             continue;
                         }
                         // Need a split.
+                        uint splitAt;
+                        bool makeSplitResultCurrent;
                         if (!splitCandidateAlreadyAligned) {
-                            targetBlock = splitCandidate.Split(targetOffset);
-#if DBGCFG
-                            methodNodes.Add(targetBlock);
-#endif
+                            splitAt = targetOffset;
+                            makeSplitResultCurrent = false;
                         }
                         else {
                             // The target is the first instruction of current block. We
                             // split the last instruction from the current block.
-                            if (!splitCandidateIsCurrentBlock) { throw new AssertionException(); }
-                            targetBlock = splitCandidate.Split(scannedInstruction.MethodRelativeOffset);
-#if DBGCFG
-                            methodNodes.Add(targetBlock);
-#endif
+                            if (!splitCandidateIsCurrentBlock) {
+                                throw new AssertionException();
+                            }
+                            splitAt = scannedInstruction.MethodRelativeOffset;
+                            linkCurrentToSplitted = false;
                             // From now on consider the newly created block to be the
                             // current one.
-                            currentBlock = targetBlock;
-                            linkCurrentToSplitted = false;
+                            makeSplitResultCurrent = true;
                         }
 #if DBGCFG
                         if (targetBlock.DebugEnabled) {
-                            Console.WriteLine("Spliting block #{0} @{1:X4}. Block #{2} created.",
-                                splitCandidate.NodeId, targetOffset, targetBlock.NodeId);
+                            Console.WriteLine("Spliting block #{0} @{1:X4}.",
+                                splitCandidate.NodeId, splitAt);
                         }
 #endif
-                        // Update offest to block mapping for new splited block.
-                        for (int splitIndex = (int)targetOffset; splitIndex < blocksPerOffset.Length; splitIndex++) {
-                            if (!object.ReferenceEquals(blocksPerOffset[splitIndex], splitCandidate)) { break; }
-                            blocksPerOffset[splitIndex] = targetBlock;
+                        targetBlock = splitCandidate.Split(splitAt);
+#if DBGCFG
+                        methodNodes.Add(targetBlock);
+                        if (targetBlock.DebugEnabled) {
+                            Console.WriteLine("New block #{0} created while spliting block #{1}.",
+                                targetBlock.NodeId, splitCandidate.NodeId);
+                        }
+#endif
+                        if (makeSplitResultCurrent) {
+                            currentBlock = targetBlock;
+                        }
+                        // Update offset to block mapping for new splited block. Also
+                        // transfer instructions from existing block to split result.
+                        for (int scannedOffset = (int)splitAt; scannedOffset < blocksPerOffset.Length; scannedOffset++) {
+                            if (!object.ReferenceEquals(blocksPerOffset[scannedOffset], splitCandidate)) { break; }
+                            blocksPerOffset[scannedOffset] = targetBlock;
                         }
 #if DBGCFG
                         AssertConsistency(blocksPerOffset, methodNodes);
@@ -286,7 +310,7 @@ namespace com.rackham.ApkRe.CFG
                 // in sequence.
                 if (scannedInstruction.ContinueInSequence) {
                     uint nextInstructionOffset =
-                        scannedInstruction.MethodRelativeOffset + scannedInstruction.BlockSize;
+                        scannedInstruction.MethodRelativeOffset + scannedInstruction.InstructionSize;
                     BlockNode nextBlock = blocksPerOffset[nextInstructionOffset];
                     if (null == nextBlock) {
                         nextBlock = new BlockNode(currentBlock.DebugEnabled);

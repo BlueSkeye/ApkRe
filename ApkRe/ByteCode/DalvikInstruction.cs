@@ -11,7 +11,7 @@ namespace com.rackham.ApkRe.ByteCode
         protected DalvikInstruction(uint methodOffset, uint size)
         {
             this.MethodRelativeOffset = methodOffset;
-            this.BlockSize = size;
+            this.InstructionSize = size;
             return;
         }
         #endregion
@@ -26,11 +26,11 @@ namespace com.rackham.ApkRe.ByteCode
         /// <summary>The assembly code for this instruction.</summary>
         internal string AssemblyCode { get; private set; }
 
-        internal uint BlockSize { get; private set; }
-
         /// <summary>Does this instruction allows for conditional or unconditional
         /// execution of the next instruction.</summary>
         internal abstract bool ContinueInSequence { get; }
+
+        internal uint InstructionSize { get; private set; }
 
         /// <summary>A literal value or an address this instruction uses. This value
         /// may or may not be meaningfull depending on the instruction format identifier.
@@ -46,7 +46,7 @@ namespace com.rackham.ApkRe.ByteCode
         /// a "next" instruction.</summary>
         internal uint NextInstructionOffset
         {
-            get { return MethodRelativeOffset + BlockSize; }
+            get { return MethodRelativeOffset + InstructionSize; }
         }
 
         /// <summary>An array (that may be a null reference) of registers referenced
