@@ -8,11 +8,11 @@ namespace com.rackham.ApkRe
     internal class SourceCodeTreeHandler
     {
         #region CONSTRUCTORS
-        internal SourceCodeTreeHandler(DirectoryInfo baseDirectory)
+        internal SourceCodeTreeHandler(DirectoryInfo baseSourceCodeDirectory)
         {
-            if (null == baseDirectory) { throw new ArgumentNullException(); }
-            if (!baseDirectory.Exists) { throw new ArgumentException(); }
-            _baseDirectory = baseDirectory;
+            if (null == baseSourceCodeDirectory) { throw new ArgumentNullException(); }
+            if (!baseSourceCodeDirectory.Exists) { throw new ArgumentException(); }
+            _baseDirectory = baseSourceCodeDirectory;
             return;
         }
         #endregion

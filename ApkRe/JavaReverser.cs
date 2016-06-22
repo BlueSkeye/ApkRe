@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.IsolatedStorage;
 using System.Text;
 
 using com.rackham.ApkHandler;
@@ -16,12 +17,15 @@ namespace com.rackham.ApkRe
     public class JavaReverser
     {
         #region CONSTRUCTORS
-        public JavaReverser(DirectoryInfo baseDirectory, DexFile input)
+        public JavaReverser(JavaReversingContext context, DexFile input)
         {
+            if (null == context) { throw new ArgumentNullException(); }
             if (null == input) { throw new REException(); }
+            _context = context;
             _input = input;
             _objectResolver = (IResolver)input;
-            _treeHandler = new SourceCodeTreeHandler(baseDirectory);
+            _treeHandler = new SourceCodeTreeHandler(context.BaseSourceCodeDirectory);
+            EnsureStorage();
             return;
         }
         #endregion
@@ -230,6 +234,13 @@ namespace com.rackham.ApkRe
             return resultBuilder.ToString();
         }
 
+        private void EnsureStorage()
+        {
+            if (!IsolatedStorageFile.IsEnabled) { return; }
+            try { _cache = IsolatedStorageFile.GetUserStoreForAssembly(); }
+            catch { return; }
+        }
+
         private void GenerateMethodHeader(IMethod method, StringBuilder into,
             Dictionary<string, string> namespaceByImportedType)
         {
@@ -284,6 +295,30 @@ namespace com.rackham.ApkRe
         {
             int reversedClassesCount = 0;
             int totalReversedMethodsCount = 0;
+
+            List<IClass> pending = new List<IClass>(_input.EnumerateClasses());
+            while (0 < pending.Count) {
+                IClass scanned = pending[0];
+                pending.RemoveAt(0);
+                if (!scanned.IsSuperClassResolved && !pending.Contains(scanned)) {
+                    FileInfo resolveTo =
+                        _context.ResolveClassNameToFile(scanned.SuperClassName);
+                    if (null == resolveTo) {
+                        Console.WriteLine("Failed to reverse class '{0}' to any in context file.",
+                            scanned.SuperClassName);
+                        // Load file now.
+                        // throw new NotImplementedException();
+                    }
+                }
+            }
+            int j = 1;
+
+            Console.WriteLine("Building classes hierarchy -----------------");
+            InheritanceHierarchyBuilder inheritanceBuilder =
+                new InheritanceHierarchyBuilder(_context);
+            if (!inheritanceBuilder.Build(_input.EnumerateClasses())) {
+                return;
+            }
 
             foreach (IClass item in _input.EnumerateClasses()) {
                 int reversedMethodsCount;
@@ -420,29 +455,31 @@ namespace com.rackham.ApkRe
 
         //    return WalkContinuation.Normal;
         //}
-#endregion
+        #endregion
 
-#region FIELDS
+        #region FIELDS
+        private IsolatedStorageFile _cache;
+        private JavaReversingContext _context;
         private DexFile _input;
         private IResolver _objectResolver;
         private SourceCodeTreeHandler _treeHandler;
-#endregion
+        #endregion
 
-#region INNER CLASSES
+        #region INNER CLASSES
         private class SourceCodeWalkerContext
         {
-#region CONSTRUCTORS
+            #region CONSTRUCTORS
             internal SourceCodeWalkerContext(StringBuilder builder)
             {
                 Builder = builder;
                 return;
             }
-#endregion
+            #endregion
 
-#region PROPERTIES
+            #region PROPERTIES
             internal StringBuilder Builder { get; private set; }
-#endregion
+            #endregion
         }
-#endregion
+        #endregion
     }
 }

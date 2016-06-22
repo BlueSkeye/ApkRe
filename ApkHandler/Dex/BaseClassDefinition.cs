@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Security.Cryptography;
 using System.Text;
 
 using com.rackham.ApkHandler.API;
 
 namespace com.rackham.ApkHandler.Dex
 {
-    internal class BaseClassDefinition : BaseAnnotableObject, IClass, IAnnotatable
+    internal abstract class BaseClassDefinition : BaseAnnotableObject, IClass, IAnnotatable
     {
         #region CONSTRUCTORS
         internal BaseClassDefinition(string fullName)
@@ -46,9 +45,16 @@ namespace com.rackham.ApkHandler.Dex
             get { return (0 != (Access & AccessFlags.Enumeration)); }
         }
 
+        public abstract bool IsExternal { get; }
+
         public bool IsInterface
         {
             get { return (0 != (Access & AccessFlags.Interface)); }
+        }
+
+        public bool IsSuperClassResolved
+        {
+            get { return (null != _superClass); }
         }
 
         public string Name { get; private set; }
@@ -60,15 +66,34 @@ namespace com.rackham.ApkHandler.Dex
 
         public IClass SuperClass
         {
-            get { return _superClass; }
+            get
+            {
+                if (null != _superClassName) { throw new InvalidOperationException(); }
+                return _superClass;
+            }
+        }
+
+        // TODO : Document the algorithm.
+        public string SuperClassName
+        {
+            get
+            {
+                if (null != _superClassName) { return _superClassName; }
+                if (null != _superClass) {
+                    if (object.ReferenceEquals(_superClass, this)) { return null; }
+                    return _superClass.Name;
+                }
+                throw new InvalidOperationException();
+            }
         }
         #endregion
-
 
         #region METHODS
         public virtual IEnumerable<IField> EnumerateFields()
         {
-            throw new NotImplementedException();
+            if (null == _fields) { yield break; }
+            foreach(IField item in _fields) { yield return item; }
+            yield break;
         }
 
         public IEnumerable<string> EnumerateImplementedInterfaces()
@@ -81,7 +106,10 @@ namespace com.rackham.ApkHandler.Dex
 
         public virtual IEnumerable<IMethod> EnumerateMethods()
         {
-            throw new NotImplementedException();
+            if (null != _methods) {
+                foreach (IMethod result in _methods) { yield return result; }
+            }
+            yield break;
         }
 
         public virtual IMethod FindMethod(string fullName)
@@ -89,11 +117,37 @@ namespace com.rackham.ApkHandler.Dex
             throw new NotImplementedException();
         }
 
+        internal void RegisterField(IField field)
+        {
+            if (null == field) { throw new ArgumentNullException(); }
+            if (!object.ReferenceEquals(this, field.Class)) {
+                throw new ArgumentException();
+            }
+            lock (this) {
+                if (null == _fields) { _fields = new List<IField>(); }
+                if (_fields.Contains(field)) { throw new InvalidOperationException(); }
+                _fields.Add(field);
+            }
+        }
+
+        internal virtual void SetBaseClass(string name)
+        {
+            if (null != _superClass) { throw new InvalidOperationException(); }
+            if (null != _superClassName) { throw new InvalidOperationException(); }
+            if (string.IsNullOrEmpty(name)) { throw new ArgumentNullException(); }
+            if (ObjectClassName == name) { _superClass = this; }
+            _superClassName = name;
+            return;
+        }
+
         internal virtual void SetBaseClass(IClass value)
         {
             if (null != _superClass) { throw new InvalidOperationException(); }
             if (null == value) { throw new ArgumentNullException(); }
             _superClass = value;
+            // Consider checking that super class name matches the name
+            // of the value.
+            _superClassName = null;
             return;
         }
 
@@ -107,10 +161,14 @@ namespace com.rackham.ApkHandler.Dex
         #endregion
 
         #region FIELDS
+        private const string ObjectClassName = "Ljava/lang/Object;";
+        private List<IField> _fields;
         private string _fullName;
         private List<string> _implementedInterfaces;
+        private List<IMethod> _methods;
         private IClass _outerClass;
         private IClass _superClass;
+        private string _superClassName;
         #endregion
     }
 }

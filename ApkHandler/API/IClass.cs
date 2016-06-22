@@ -10,7 +10,9 @@ namespace com.rackham.ApkHandler.API
         string FullName { get; }
         bool IsAbstract { get; }
         bool IsEnumeration { get; }
+        bool IsExternal { get; }
         bool IsInterface { get; }
+        bool IsSuperClassResolved { get; }
         string Name { get; }
         /// <summary>This is the embedding class. This class has it'ts code embedded
         /// in the original class.</summary>
@@ -18,6 +20,7 @@ namespace com.rackham.ApkHandler.API
         /// <summary>This is the base class. Instances from this class specializes
         /// those from the <see cref="SuperClass"/></summary>
         IClass SuperClass { get; }
+        string SuperClassName { get; }
         #endregion
 
         #region METHODS

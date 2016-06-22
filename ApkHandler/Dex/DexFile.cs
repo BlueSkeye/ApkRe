@@ -135,7 +135,6 @@ namespace com.rackham.ApkHandler.Dex
         private IMethod FindMethod(string name)
         {
             if (string.IsNullOrEmpty(name)) { throw new ArgumentException(); }
-            IMethod result = null;
             int lastSplitIndex = name.LastIndexOf("::");
             if (   (0 == lastSplitIndex)
                 || (-1 == lastSplitIndex)
@@ -147,9 +146,7 @@ namespace com.rackham.ApkHandler.Dex
             string className = name.Substring(0, lastSplitIndex);
             IClass owningClass = FindClass(className);
             if (null == owningClass) { return null; }
-
-            throw new NotImplementedException();
-            return result;
+            return owningClass.FindMethod(name);
         }
 
         private KnownType FindKnownType(string fullName)
@@ -939,6 +936,41 @@ namespace com.rackham.ApkHandler.Dex
             return;
         }
 
+        /// <summary></summary>
+        /// <param name="reader"></param>
+        /// <remarks>This list must be sorted, where the defining type (by type_id index) is
+        /// the major order, field name (by string_id index) is the intermediate order, and
+        /// type (by type_id index) is the minor order. The list must not contain any duplicate
+        /// entries. </remarks>
+        private void LoadFields(BinaryReader reader)
+        {
+            if (null != this.Fields) { throw new InvalidOperationException(); }
+            Fields = new List<Field>();
+            uint listOffset = this.Header.FieldIdsDefinition.Offset;
+            if (0 == listOffset) { return; }
+            uint listSize = this.Header.FieldIdsDefinition.Size;
+            reader.BaseStream.Position = listOffset;
+            for (uint index = 0; index < listSize; index++) {
+                // index into the type_ids list for the definer of this field.
+                // This must be a class type, and not an array or primitive type.
+                string owningType = GetMemberClassNameFromIndex(reader);
+
+                // index into the type_ids list for the type of this field.
+                ushort typeIndex = reader.ReadUInt16();
+                if (typeIndex >= this.Types.Count) { throw new ParseException(); }
+                string fieldTypeName = this.Types[(int)typeIndex].FullName;
+
+                // index into the string_ids list for the name of this field.
+                // The string must conform to the syntax for MemberName, defined above.
+                uint nameIndex = reader.ReadUInt32();
+                if (nameIndex >= this.Strings.Count) { throw new ParseException(); }
+                string fieldName = this.Strings[(int)nameIndex];
+                if (!Helpers.IsValidMemberName(fieldName)) { throw new ParseException(); }
+                Fields.Add(new Field(owningType, fieldTypeName, fieldName));
+            }
+            return;
+        }
+
         private T LoadIndexedEncodedValue<T>(BinaryReader reader, int valueArg,
             List<T> from)
         {
@@ -959,6 +991,42 @@ namespace com.rackham.ApkHandler.Dex
             // The offset should be to a location in the data section. The format of the
             // data is specified by "annotation_set_item" below.
             method.Annotations = LoadAnnotationSet(reader);
+            return;
+        }
+
+        /// <summary></summary>
+        /// <param name="reader"></param>
+        /// <remarks>This list must be sorted, where the defining type (by type_id index)
+        /// is the major order, method name (by string_id index) is the intermediate order,
+        /// and method prototype (by proto_id index) is the minor order. The list must not
+        /// contain any duplicate entries. </remarks>
+        private void LoadMethods(BinaryReader reader)
+        {
+            if (null != this.Methods) { throw new InvalidOperationException(); }
+            this.Methods = new List<Method>();
+            uint listOffset = this.Header.MethodIdsDefinition.Offset;
+            if (0 == listOffset) { return; }
+            uint listSize = this.Header.MethodIdsDefinition.Size;
+            reader.BaseStream.Position = listOffset;
+
+            for (uint index = 0; index < listSize; index++) {
+                // index into the type_ids list for the definer of this method. This must be a
+                // class or array type, and not a primitive type.
+                string className = GetMemberClassNameFromIndex(reader);
+                // index into the proto_ids list for the prototype of this method
+                ushort prototypeIndex = reader.ReadUInt16();
+                if (prototypeIndex >= this.Prototypes.Count) { throw new ParseException(); }
+                Prototype methodPrototype = this.Prototypes[prototypeIndex];
+                // into the string_ids list for the name of this method. The string must conform
+                // to the syntax for MemberName, defined above.
+                uint nameIndex = reader.ReadUInt32();
+                if (nameIndex >= this.Strings.Count) { throw new ParseException(); }
+                string methodName = this.Strings[(int)nameIndex];
+                if (!Helpers.IsValidMemberName(methodName)) { throw new ParseException(); }
+
+                this.Methods.Add(new Method(className, methodName, methodPrototype));
+            }
+
             return;
         }
 
@@ -1005,77 +1073,6 @@ namespace com.rackham.ApkHandler.Dex
         //    reader.BaseStream.Position = savedPosition;
         //    return result;
         //}
-
-        /// <summary></summary>
-        /// <param name="reader"></param>
-        /// <remarks>This list must be sorted, where the defining type (by type_id index) is
-        /// the major order, field name (by string_id index) is the intermediate order, and
-        /// type (by type_id index) is the minor order. The list must not contain any duplicate
-        /// entries. </remarks>
-        private void LoadFields(BinaryReader reader)
-        {
-            if (null != this.Fields) { throw new InvalidOperationException(); }
-            Fields = new List<Field>();
-            uint listOffset = this.Header.FieldIdsDefinition.Offset;
-            if (0 == listOffset) { return; }
-            uint listSize = this.Header.FieldIdsDefinition.Size;
-            reader.BaseStream.Position = listOffset;
-            for (uint index = 0; index < listSize; index++) {
-                // index into the type_ids list for the definer of this field.
-                // This must be a class type, and not an array or primitive type.
-                string owningType = GetMemberClassNameFromIndex(reader);
-
-                // index into the type_ids list for the type of this field.
-                ushort typeIndex = reader.ReadUInt16();
-                if (typeIndex >= this.Types.Count) { throw new ParseException(); }
-                string fieldTypeName = this.Types[(int)typeIndex].FullName;
-
-                // index into the string_ids list for the name of this field.
-                // The string must conform to the syntax for MemberName, defined above.
-                uint nameIndex = reader.ReadUInt32();
-                if (nameIndex >= this.Strings.Count) { throw new ParseException(); }
-                string fieldName = this.Strings[(int)nameIndex];
-                if (!Helpers.IsValidMemberName(fieldName)) { throw new ParseException(); }
-                Fields.Add(new Field(owningType, fieldTypeName, fieldName));
-            }
-            return;
-        }
-
-        /// <summary></summary>
-        /// <param name="reader"></param>
-        /// <remarks>This list must be sorted, where the defining type (by type_id index)
-        /// is the major order, method name (by string_id index) is the intermediate order,
-        /// and method prototype (by proto_id index) is the minor order. The list must not
-        /// contain any duplicate entries. </remarks>
-        private void LoadMethods(BinaryReader reader)
-        {
-            if (null != this.Methods) { throw new InvalidOperationException(); }
-            this.Methods = new List<Method>();
-            uint listOffset = this.Header.MethodIdsDefinition.Offset;
-            if (0 == listOffset) { return; }
-            uint listSize = this.Header.MethodIdsDefinition.Size;
-            reader.BaseStream.Position = listOffset;
-
-            for (uint index = 0; index < listSize; index++) {
-                // index into the type_ids list for the definer of this method. This must be a
-                // class or array type, and not a primitive type.
-                string className = GetMemberClassNameFromIndex(reader);
-                // index into the proto_ids list for the prototype of this method
-                ushort prototypeIndex = reader.ReadUInt16();
-                if (prototypeIndex >= this.Prototypes.Count) { throw new ParseException(); }
-                Prototype methodPrototype = this.Prototypes[prototypeIndex];
-                // into the string_ids list for the name of this method. The string must conform
-                // to the syntax for MemberName, defined above.
-                uint nameIndex = reader.ReadUInt32();
-                if (nameIndex >= this.Strings.Count) { throw new ParseException(); }
-                string methodName = this.Strings[(int)nameIndex];
-                if (!Helpers.IsValidMemberName(methodName)) { throw new ParseException(); }
-
-                this.Methods.Add(new Method(className, methodName, methodPrototype));
-            }
-
-            return;
-        }
 
         /// <summary></summary>
         /// <param name="reader"></param>
@@ -1215,14 +1212,18 @@ namespace com.rackham.ApkHandler.Dex
             foreach(KnownType scannedType in result.Types) {
                 if (null != scannedType.Definition) { continue; }
                 // This is an external type. Add a dummy definition.
-                scannedType.SetDefinition(
-                    new BaseClassDefinition(scannedType.FullName));
+                scannedType.SetDefinition(new ExternalClass(scannedType.FullName));
             }
             foreach (PendingClassResolution resolution in pendingResolutions) {
                 string superClassName = resolution.SuperClassName;
                 KnownType superClass = result.FindKnownType(superClassName);
                 if (null == superClass) { throw new ParseException(); }
-                resolution.Class.SetBaseClass(superClass.Definition);
+                if (superClass.Definition is ExternalClass) {
+                    resolution.Class.SetBaseClass(superClass.Definition.Name);
+                }
+                else {
+                    resolution.Class.SetBaseClass(superClass.Definition);
+                }
             }
             result.LinkMembersToClass(result.Methods);
             result.LinkMembersToClass(result.Fields);
@@ -1370,6 +1371,11 @@ namespace com.rackham.ApkHandler.Dex
             public override AccessFlags Access
             {
                 get { return (AccessFlags)0; }
+            }
+
+            public override bool IsExternal
+            {
+                get { return true; }
             }
             #endregion
 
