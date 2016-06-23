@@ -37,6 +37,7 @@ namespace com.rackham.ApkHandler.Dex
         {
             if (null != Class) { throw new InvalidOperationException(); }
             Class = owner;
+            ((BaseClassDefinition)owner).RegisterField(this);
             return;
         }
         #endregion

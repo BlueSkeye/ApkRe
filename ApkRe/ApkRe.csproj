@@ -38,6 +38,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssertionException.cs" />
+    <Compile Include="AST\InheritanceHierarchyBuilder.cs" />
     <Compile Include="ByteCode\ArrayConstructionInstruction.cs" />
     <Compile Include="ByteCode\ArrayOperationInstruction.cs" />
     <Compile Include="AST\AstBuilder.cs" />
@@ -78,6 +79,7 @@
     <Compile Include="ByteCode\UnconditionalBranchInstruction.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="JavaReverser.cs" />
+    <Compile Include="JavaReversingContext.cs" />
     <Compile Include="Tree\NodeBase-Test.cs" />
     <Compile Include="Tree\NodeBase.cs" />
     <Compile Include="ByteCode\OpCodeDecoder-Init.cs" />

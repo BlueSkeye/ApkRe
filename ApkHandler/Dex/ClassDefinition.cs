@@ -24,6 +24,11 @@ namespace com.rackham.ApkHandler.Dex
 
         internal List<Field> InstanceFields { get; private set; }
 
+        public override bool IsExternal
+        {
+            get { return false; }
+        }
+
         internal string Filename { get; set; }
 
         internal List<Field> StaticFields { get; private set; }
