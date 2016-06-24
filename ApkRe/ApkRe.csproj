@@ -96,6 +96,10 @@
       <Project>{63ABEEFD-C939-4932-9C24-CB84FE7DA395}</Project>
       <Name>ApkHandler</Name>
     </ProjectReference>
+    <ProjectReference Include="..\ApkJava\ApkJava.csproj">
+      <Project>{da213a61-2610-4cd0-9cf1-206a8ab1d3fd}</Project>
+      <Name>ApkJava</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

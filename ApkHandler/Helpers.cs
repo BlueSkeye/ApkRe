@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-using com.rackham.ApkHandler.API;
+using com.rackham.ApkJava.API;
 
 namespace com.rackham.ApkHandler
 {
@@ -222,17 +222,6 @@ namespace com.rackham.ApkHandler
             }
             for (int index = 0; index < arrayDimensions; index++) { canonicType += "[]"; }
             return canonicType;
-        }
-
-        internal static string GetUndecoratedClassName(string candidate)
-        {
-            return candidate;
-
-            //// TODO : Handle inner classes naming convention.
-            //if (('L' != candidate[0]) || (';' != candidate[candidate.Length - 1])) {
-            //    return candidate;
-            //}
-            //return candidate.Substring(1, candidate.Length - 2);
         }
 
         internal static bool IsValidClassName(string candidate, bool arrayAllowed)

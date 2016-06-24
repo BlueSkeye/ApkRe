@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-using com.rackham.ApkHandler.API;
-using com.rackham.ApkRe.AST;
+using com.rackham.ApkJava.API;
 using com.rackham.ApkRe.ByteCode;
 
 namespace com.rackham.ApkRe

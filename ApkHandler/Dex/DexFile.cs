@@ -4,7 +4,8 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
-using com.rackham.ApkHandler;
+using com.rackham.ApkJava;
+using com.rackham.ApkJava.API;
 using com.rackham.ApkHandler.API;
 
 namespace com.rackham.ApkHandler.Dex
@@ -85,9 +86,9 @@ namespace com.rackham.ApkHandler.Dex
         /// <summary>Provides an enumerable object suitable for use with foreach C#
         /// syntax that will enumerate classes from this file.</summary>
         /// <returns></returns>
-        public IEnumerable<IClass> EnumerateClasses()
+        public IEnumerable<IAnnotatableClass> EnumerateClasses()
         {
-            foreach (IClass item in Classes) { yield return item; }
+            foreach (IAnnotatableClass item in Classes) { yield return item; }
             yield break;
         }
 
@@ -1380,12 +1381,12 @@ namespace com.rackham.ApkHandler.Dex
             #endregion
 
             #region METHODS
-            internal override void SetBaseClass(IClass value)
+            public override void SetBaseClass(IClass value)
             {
                 throw new InvalidOperationException();
             }
 
-            internal override void SetImplementedInterfaces(List<string> value)
+            protected override void SetImplementedInterfaces(List<string> value)
             {
                 throw new InvalidOperationException();
             }

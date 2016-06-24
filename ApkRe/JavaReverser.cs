@@ -4,13 +4,12 @@ using System.IO;
 using System.IO.IsolatedStorage;
 using System.Text;
 
-using com.rackham.ApkHandler;
 using com.rackham.ApkHandler.API;
 using com.rackham.ApkHandler.Dex;
+using com.rackham.ApkJava.API;
 using com.rackham.ApkRe.AST;
 using com.rackham.ApkRe.ByteCode;
 using com.rackham.ApkRe.CFG;
-using com.rackham.ApkRe.Tree;
 
 namespace com.rackham.ApkRe
 {
@@ -320,7 +319,7 @@ namespace com.rackham.ApkRe
                 return;
             }
 
-            foreach (IClass item in _input.EnumerateClasses()) {
+            foreach (IAnnotatableClass item in _input.EnumerateClasses()) {
                 int reversedMethodsCount;
                 Console.WriteLine("Reversing class '{0}' ----------------------------------",
                     item.FullName);
@@ -339,7 +338,7 @@ namespace com.rackham.ApkRe
         /// <param name="item">The class to be reversed.</param>
         /// <param name="reversedMethodsCount">On return this parameter is updated
         /// with the count of methods reversed within this class.</param>
-        private void ReverseClass(IClass item, out int reversedMethodsCount)
+        private void ReverseClass(IAnnotatableClass item, out int reversedMethodsCount)
         {
             FileInfo targetFile = _treeHandler.GetClassFileName(item.Name);
             List<string> headerSourceCode = new List<string>();
@@ -357,7 +356,7 @@ namespace com.rackham.ApkRe
 #if DBGCFG
                 bool debugClassCfg = item.IsAnnotatedWith(CfgDebugAnnotation.Id);
 #endif
-                foreach (IMethod method in item.EnumerateMethods()) {
+                foreach (IAnnotatableMethod method in item.EnumerateMethods()) {
 #if DBGCFG
                     bool debugMethodCfg = debugClassCfg || method.IsAnnotatedWith(CfgDebugAnnotation.Id);
 #endif

@@ -1,6 +1,6 @@
 ﻿using System.Security.Cryptography;
 
-namespace com.rackham.ApkHandler.API
+namespace com.rackham.ApkJava.API
 {
     public interface IAnnotatable
     {

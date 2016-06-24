@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-using com.rackham.ApkHandler.API;
+using com.rackham.ApkJava.API;
 
 namespace com.rackham.ApkHandler.Dex
 {

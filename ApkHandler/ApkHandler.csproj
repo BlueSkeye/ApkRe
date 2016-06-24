@@ -39,16 +39,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AnnotationBase.cs" />
-    <Compile Include="API\IAnnotatable.cs" />
-    <Compile Include="API\IAnnotation.cs" />
-    <Compile Include="API\IClass.cs" />
-    <Compile Include="API\IField.cs" />
-    <Compile Include="API\IGuardHandler.cs" />
-    <Compile Include="API\IMethod.cs" />
-    <Compile Include="API\AccessFlags.cs" />
-    <Compile Include="API\IPrototype.cs" />
     <Compile Include="API\IResolver.cs" />
-    <Compile Include="API\ITryBlock.cs" />
     <Compile Include="API\IType.cs" />
     <Compile Include="ApkFile.cs" />
     <Compile Include="ApkFormatException.cs" />
@@ -57,7 +48,6 @@
     <Compile Include="Dex\Annotation.cs" />
     <Compile Include="Dex\AnnotationElement.cs" />
     <Compile Include="Dex\AnnotationVisibility.cs" />
-    <Compile Include="Dex\BaseAnnotableObject.cs" />
     <Compile Include="Dex\BinaryReaderWithConsistency.cs" />
     <Compile Include="Dex\CC\ChunkType.cs" />
     <Compile Include="Dex\CC\CompressedFormatException.cs" />
@@ -86,7 +76,6 @@
     <Compile Include="Dex\Constants.cs" />
     <Compile Include="Dex\DebugInfo.cs" />
     <Compile Include="Dex\DexFile.cs" />
-    <Compile Include="Dex\BaseClassDefinition.cs" />
     <Compile Include="Dex\Field.cs" />
     <Compile Include="Dex\GuardHandlers.cs" />
     <Compile Include="Dex\HashingReader.cs" />
@@ -129,6 +118,12 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Messages.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ApkJava\ApkJava.csproj">
+      <Project>{da213a61-2610-4cd0-9cf1-206a8ab1d3fd}</Project>
+      <Name>ApkJava</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
