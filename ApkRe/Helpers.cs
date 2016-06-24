@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+using com.rackham.ApkJava;
 using com.rackham.ApkJava.API;
 using com.rackham.ApkRe.ByteCode;
 
@@ -50,7 +51,7 @@ namespace com.rackham.ApkRe
             IPrototype prototype = from.Prototype;
             string returnTypeNamespace = null;
             string returnTypeName = demangle
-                ? com.rackham.ApkHandler.Helpers.GetCanonicTypeName(prototype.ReturnType, out returnTypeNamespace)
+                ? JavaHelpers.GetCanonicTypeName(prototype.ReturnType, out returnTypeNamespace)
                 : prototype.ReturnType;
             StringBuilder builder = new StringBuilder();
             builder.Append(string.IsNullOrEmpty(returnTypeNamespace)
@@ -67,7 +68,7 @@ namespace com.rackham.ApkRe
                     if (!demangle) { builder.Append(parameterTypeName); }
                     else {
                         string typeNamespace;
-                        parameterTypeName = com.rackham.ApkHandler.Helpers.GetCanonicTypeName(parameterTypeName,
+                        parameterTypeName = JavaHelpers.GetCanonicTypeName(parameterTypeName,
                             out typeNamespace);
                         builder.Append((string.IsNullOrEmpty(typeNamespace)
                             ? parameterTypeName

@@ -39,40 +39,6 @@ namespace com.rackham.ApkHandler
             return true;
         }
 
-        public static string BuildMethodDeclarationString(IMethod from, bool demangle = true)
-        {
-            if (null == from) { throw new ArgumentNullException(); }
-            IPrototype prototype = from.Prototype;
-            string returnTypeNamespace = null;
-            string returnTypeName = demangle
-                ? Helpers.GetCanonicTypeName(prototype.ReturnType, out returnTypeNamespace)
-                : prototype.ReturnType;
-            StringBuilder builder = new StringBuilder();
-            builder.Append(string.IsNullOrEmpty(returnTypeNamespace)
-                ? returnTypeName
-                : returnTypeNamespace + "." + returnTypeName)
-                .Append(" ")
-                .Append(from.Name)
-                .Append("(");
-            List<string> parameters = prototype.ParametersType;
-            if (null != parameters) {
-                for(int index = 0; index < parameters.Count; index++) {
-                    if (0 < index) { builder.Append(", "); }
-                    string parameterTypeName = parameters[index];
-                    if (!demangle) { builder.Append(parameterTypeName); }
-                    else {
-                        string typeNamespace;
-                        parameterTypeName = Helpers.GetCanonicTypeName(parameterTypeName,
-                            out typeNamespace);
-                        builder.Append((string.IsNullOrEmpty(typeNamespace)
-                            ? parameterTypeName
-                            : typeNamespace + "." + parameterTypeName));
-                    }
-                }
-            }
-            return builder.Append(")").ToString();
-        }
-
         /// <summary>Sometimes we use streams that are unexpectedly closed by methods we
         /// are invoking such as by the <see cref="CryptoStream"/>. This method creates a
         /// special kind of <see cref="Stream"/> that will shield an existing <see cref="Stream"/>
@@ -161,67 +127,6 @@ namespace com.rackham.ApkHandler
                 if (!Directory.Exists(scannedPath)) { Directory.CreateDirectory(scannedPath); }
             }
             return Path.Combine(scannedPath, filenameItems[filenameItems.Length - 1]);
-        }
-
-        /// <summary>Starting from a full encoded Dalvik class name as defined in "Type descriptor
-        /// semantics", resolve to a Java type name and split apart the simple class name and the
-        /// namespace name.</summary>
-        /// <param name="fullDalvikTypeName"></param>
-        /// <param name="namespaceName"></param>
-        /// <returns></returns>
-        public static string GetCanonicTypeName(string fullDalvikTypeName, out string namespaceName)
-        {
-            int arrayDimensions = 0;
-
-            while (fullDalvikTypeName.StartsWith("[")) {
-                arrayDimensions++;
-                fullDalvikTypeName = fullDalvikTypeName.Substring(1);
-            }
-            namespaceName = null;
-            string canonicType;
-            switch (fullDalvikTypeName) {
-                case "V":
-                    canonicType = "void";
-                    break;
-                case "Z":
-                    canonicType = "boolean";
-                    break;
-                case "B":
-                    canonicType = "byte";
-                    break;
-                case "S":
-                    canonicType = "short";
-                    break;
-                case "C":
-                    canonicType = "char";
-                    break;
-                case "I":
-                    canonicType = "int";
-                    break;
-                case "J":
-                    canonicType = "long";
-                    break;
-                case "F":
-                    canonicType = "float";
-                    break;
-                case "D":
-                    canonicType = "double";
-                    break;
-                default:
-                    if (!fullDalvikTypeName.StartsWith("L")) { throw new DalvikException(); }
-                    if (!fullDalvikTypeName.EndsWith(";")) { throw new DalvikException(); }
-                    fullDalvikTypeName = fullDalvikTypeName.Substring(1, fullDalvikTypeName.Length - 2);
-                    string[] item = fullDalvikTypeName.Split('/');
-                    namespaceName = string.Empty;
-                    for (int index = 0; index < (item.Length - 1); index++) {
-                        if (0 < index) { namespaceName += "."; }
-                        namespaceName += item[index];
-                    }
-                    canonicType = item[item.Length - 1];
-                    break;
-            }
-            for (int index = 0; index < arrayDimensions; index++) { canonicType += "[]"; }
-            return canonicType;
         }
 
         internal static bool IsValidClassName(string candidate, bool arrayAllowed)

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
-using System.Text;
 
 using com.rackham.ApkJava;
 using com.rackham.ApkJava.API;
@@ -1386,7 +1385,7 @@ namespace com.rackham.ApkHandler.Dex
                 throw new InvalidOperationException();
             }
 
-            protected override void SetImplementedInterfaces(List<string> value)
+            public override void SetImplementedInterfaces(List<string> value)
             {
                 throw new InvalidOperationException();
             }

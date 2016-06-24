@@ -2,14 +2,14 @@
 
 namespace com.rackham.ApkJava
 {
-    public class JavaClassParsingExcepton : ApplicationException
+    public class JavaClassParsingException : ApplicationException
     {
-        internal JavaClassParsingExcepton()
+        internal JavaClassParsingException()
         {
             return;
         }
 
-        internal JavaClassParsingExcepton(string message)
+        internal JavaClassParsingException(string message)
             : base(message)
         {
             return;

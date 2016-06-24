@@ -151,7 +151,7 @@ namespace com.rackham.ApkJava
             return;
         }
 
-        protected virtual void SetImplementedInterfaces(List<string> value)
+        public virtual void SetImplementedInterfaces(List<string> value)
         {
             if (null != _implementedInterfaces) { throw new InvalidOperationException(); }
             if (null == value) { throw new ArgumentNullException(); }
@@ -161,7 +161,7 @@ namespace com.rackham.ApkJava
         #endregion
 
         #region FIELDS
-        private const string ObjectClassName = "Ljava/lang/Object;";
+        internal const string ObjectClassName = "Ljava/lang/Object;";
         private List<IField> _fields;
         private string _fullName;
         private List<string> _implementedInterfaces;

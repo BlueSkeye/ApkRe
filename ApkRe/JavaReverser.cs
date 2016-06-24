@@ -6,6 +6,7 @@ using System.Text;
 
 using com.rackham.ApkHandler.API;
 using com.rackham.ApkHandler.Dex;
+using com.rackham.ApkJava;
 using com.rackham.ApkJava.API;
 using com.rackham.ApkRe.AST;
 using com.rackham.ApkRe.ByteCode;
@@ -57,8 +58,7 @@ namespace com.rackham.ApkRe
         {
             StringBuilder resultBuilder = new StringBuilder();
             string thisClassNamespace;
-            string thisClassCanonicName =
-                com.rackham.ApkHandler.Helpers.GetCanonicTypeName(definition.Name, out thisClassNamespace);
+            string thisClassCanonicName = JavaHelpers.GetCanonicTypeName(definition.Name, out thisClassNamespace);
 
             // Resolve implemented interfaces namespaces.
             List<string> simpleInterfaceNames = new List<string>();
@@ -276,8 +276,7 @@ namespace com.rackham.ApkRe
         {
             string alreadyRegisteredNamespace;
             string candidateNamespace;
-            string simpleClassName =
-                com.rackham.ApkHandler.Helpers.GetCanonicTypeName(fullDalvikTypeName, out candidateNamespace);
+            string simpleClassName = JavaHelpers.GetCanonicTypeName(fullDalvikTypeName, out candidateNamespace);
 
             if (null == candidateNamespace) { return simpleClassName; }
             if (!namespaceByImportedType.TryGetValue(simpleClassName, out alreadyRegisteredNamespace)) {

@@ -41,23 +41,34 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Annotation.cs" />
+    <Compile Include="AnnotationElement.cs" />
+    <Compile Include="AnnotationVisibility.cs" />
     <Compile Include="API\AccessFlags.cs" />
     <Compile Include="API\IAnnotatable.cs" />
     <Compile Include="API\IAnnotatableClass.cs" />
     <Compile Include="API\IAnnotatableMethod.cs" />
     <Compile Include="API\IAnnotation.cs" />
     <Compile Include="API\IClass.cs" />
+    <Compile Include="API\IClassMember.cs" />
     <Compile Include="API\IField.cs" />
     <Compile Include="API\IGuardHandler.cs" />
     <Compile Include="API\IMethod.cs" />
     <Compile Include="API\IPrototype.cs" />
     <Compile Include="API\ITryBlock.cs" />
+    <Compile Include="DebugInfo.cs" />
+    <Compile Include="GuardHandlers.cs" />
+    <Compile Include="Method.cs" />
     <Compile Include="BaseClassDefinition.cs" />
+    <Compile Include="ClassDefinition.cs" />
+    <Compile Include="Field.cs" />
     <Compile Include="JavaClassFileLiteParser.cs" />
-    <Compile Include="JavaClassParsingExcepton.cs" />
+    <Compile Include="JavaClassParsingException.cs" />
     <Compile Include="JavaHelpers.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="BaseAnnotableObject.cs" />
+    <Compile Include="Prototype.cs" />
+    <Compile Include="TryBlock.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
