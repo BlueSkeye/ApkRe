@@ -32,10 +32,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
+    <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AnnotationBase.cs" />
@@ -109,6 +106,10 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\ApkJava.Api\ApkJava.Api.csproj">
+      <Project>{6632eecd-941b-456d-a312-c3d5020766c3}</Project>
+      <Name>ApkJava.Api</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ApkJava\ApkJava.csproj">
       <Project>{da213a61-2610-4cd0-9cf1-206a8ab1d3fd}</Project>
       <Name>ApkJava</Name>

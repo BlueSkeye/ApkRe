@@ -70,10 +70,11 @@ namespace com.rackham.ApkJava
                         for (int index = 0; index < fields.Length; index++)
                         {
                             string fieldDescriptor = poolStream.ReadUtf8(fields[index].descriptor_index);
-                            Field newField = new Field(thisClassName,
-                                ,
-                                poolStream.ReadUtf8(fields[index].name_index));
-                            newField.LinkTo(result);
+                            throw new NotImplementedException();
+                            //Field newField = new Field(thisClassName,
+                            //    null,
+                            //    poolStream.ReadUtf8(fields[index].name_index));
+                            //newField.LinkTo(result);
                         }
                     }
                 }

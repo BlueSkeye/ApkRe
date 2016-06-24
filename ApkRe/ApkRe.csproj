@@ -31,12 +31,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="AssertionException.cs" />
     <Compile Include="AST\InheritanceHierarchyBuilder.cs" />
     <Compile Include="ByteCode\ArrayConstructionInstruction.cs" />
@@ -96,10 +90,17 @@
       <Project>{63ABEEFD-C939-4932-9C24-CB84FE7DA395}</Project>
       <Name>ApkHandler</Name>
     </ProjectReference>
+    <ProjectReference Include="..\ApkJava.Api\ApkJava.Api.csproj">
+      <Project>{6632eecd-941b-456d-a312-c3d5020766c3}</Project>
+      <Name>ApkJava.Api</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ApkJava\ApkJava.csproj">
       <Project>{da213a61-2610-4cd0-9cf1-206a8ab1d3fd}</Project>
       <Name>ApkJava</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
