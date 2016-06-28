@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-using com.rackham.ApkHandler.API;
-using com.rackham.ApkRe.AST;
+using com.rackham.ApkJava;
+using com.rackham.ApkJava.API;
 using com.rackham.ApkRe.ByteCode;
 
 namespace com.rackham.ApkRe
@@ -51,7 +51,7 @@ namespace com.rackham.ApkRe
             IPrototype prototype = from.Prototype;
             string returnTypeNamespace = null;
             string returnTypeName = demangle
-                ? com.rackham.ApkHandler.Helpers.GetCanonicTypeName(prototype.ReturnType, out returnTypeNamespace)
+                ? JavaHelpers.GetCanonicTypeName(prototype.ReturnType, out returnTypeNamespace)
                 : prototype.ReturnType;
             StringBuilder builder = new StringBuilder();
             builder.Append(string.IsNullOrEmpty(returnTypeNamespace)
@@ -68,7 +68,7 @@ namespace com.rackham.ApkRe
                     if (!demangle) { builder.Append(parameterTypeName); }
                     else {
                         string typeNamespace;
-                        parameterTypeName = com.rackham.ApkHandler.Helpers.GetCanonicTypeName(parameterTypeName,
+                        parameterTypeName = JavaHelpers.GetCanonicTypeName(parameterTypeName,
                             out typeNamespace);
                         builder.Append((string.IsNullOrEmpty(typeNamespace)
                             ? parameterTypeName
@@ -79,18 +79,23 @@ namespace com.rackham.ApkRe
             return builder.Append(")").ToString();
         }
 
-        internal static string GetClassAndPackageName(string fullClassName, out string[] packageNameItems)
+        internal static string GetClassAndPackageName(IAnnotatableClass item, out string[] packageNameItems)
         {
-            if (string.IsNullOrEmpty(fullClassName)) { throw new ArgumentNullException(); }
-            if ('L' != fullClassName[0]) { throw new ArgumentException(); }
-            if (';' != fullClassName[fullClassName.Length - 1]) { throw new ArgumentException(); }
-            fullClassName = fullClassName.Substring(1, fullClassName.Length - 2);
-            if (-1 != fullClassName.IndexOf('$')) { throw new REException(); }
+            if (null == item) { throw new ArgumentNullException(); }
+            if (-1 != item.Name.IndexOf('$')) { throw new REException(); }
 
-            string[] items = fullClassName.Split('/');
-            packageNameItems = new string[items.Length - 1];
-            Array.Copy(items, 0, packageNameItems, 0, items.Length - 1);
-            return items[items.Length - 1];
+            string result = item.Name;
+            List<string> namespaces = new List<string>();
+            for (INamespace scannedNamespace = item.Namespace;
+                !scannedNamespace.IsRoot;
+                scannedNamespace = scannedNamespace.Parent)
+            {
+                namespaces.Insert(0, scannedNamespace.Name);
+            }
+            packageNameItems = (0 == namespaces.Count)
+                ? null
+                : namespaces.ToArray();
+            return result;
         }
 
         internal static AccessFlags GetInterfaceModifiers(AccessFlags candidate)

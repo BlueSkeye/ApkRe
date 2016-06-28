@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Security.Cryptography;
 
-namespace com.rackham.ApkHandler.API
+namespace com.rackham.ApkJava.API
 {
     /// <summary>An annotation is a piece of information that can be
     /// attached to various kind of objects. These annotations are not

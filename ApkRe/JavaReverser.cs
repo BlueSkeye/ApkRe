@@ -4,13 +4,13 @@ using System.IO;
 using System.IO.IsolatedStorage;
 using System.Text;
 
-using com.rackham.ApkHandler;
 using com.rackham.ApkHandler.API;
 using com.rackham.ApkHandler.Dex;
+using com.rackham.ApkJava;
+using com.rackham.ApkJava.API;
 using com.rackham.ApkRe.AST;
 using com.rackham.ApkRe.ByteCode;
 using com.rackham.ApkRe.CFG;
-using com.rackham.ApkRe.Tree;
 
 namespace com.rackham.ApkRe
 {
@@ -58,8 +58,7 @@ namespace com.rackham.ApkRe
         {
             StringBuilder resultBuilder = new StringBuilder();
             string thisClassNamespace;
-            string thisClassCanonicName =
-                com.rackham.ApkHandler.Helpers.GetCanonicTypeName(definition.Name, out thisClassNamespace);
+            string thisClassCanonicName = JavaHelpers.GetCanonicTypeName(definition.Name, out thisClassNamespace);
 
             // Resolve implemented interfaces namespaces.
             List<string> simpleInterfaceNames = new List<string>();
@@ -97,7 +96,7 @@ namespace com.rackham.ApkRe
             Dictionary<string, string> namespaceByImportedType)
         {
             string canonicFieldType =
-                GetCanonicTypeName(field.Class.Name, namespaceByImportedType);
+                GetCanonicTypeName(field.Class.FullyQualifiedName, namespaceByImportedType);
             return string.Format("{0} {1} {2};",
                 Helpers.GetModifiersSourceCode(field.AccessFlags), canonicFieldType,
                 field.Name);
@@ -268,17 +267,17 @@ namespace com.rackham.ApkRe
         /// <summary>Starting from the given Dalvik full type name, translate it to a Java
         /// syntax type name. Also attempt to remove the result namespace taking care to
         /// resolve homonimy conflicts.</summary>
-        /// <param name="fullDalvikTypeName"></param>
+        /// <param name="fullyQualifiedName"></param>
         /// <param name="namespaceByImportedType">A dictionary of import namespaces keyed
         /// by the imported class name.</param>
         /// <returns></returns>
-        private string GetCanonicTypeName(string fullDalvikTypeName,
+        private string GetCanonicTypeName(string fullyQualifiedName,
             Dictionary<string, string> namespaceByImportedType)
         {
             string alreadyRegisteredNamespace;
             string candidateNamespace;
             string simpleClassName =
-                com.rackham.ApkHandler.Helpers.GetCanonicTypeName(fullDalvikTypeName, out candidateNamespace);
+                JavaHelpers.GetCanonicTypeName(fullyQualifiedName, out candidateNamespace);
 
             if (null == candidateNamespace) { return simpleClassName; }
             if (!namespaceByImportedType.TryGetValue(simpleClassName, out alreadyRegisteredNamespace)) {
@@ -286,7 +285,7 @@ namespace com.rackham.ApkRe
                 return simpleClassName;
             }
             if (alreadyRegisteredNamespace == candidateNamespace) { return simpleClassName; }
-            return fullDalvikTypeName;
+            return fullyQualifiedName;
         }
 
         /// <summary>The main method for this class. Will reverse every class in turn.
@@ -307,7 +306,7 @@ namespace com.rackham.ApkRe
                         Console.WriteLine("Failed to reverse class '{0}' to any in context file.",
                             scanned.SuperClassName);
                         // Load file now.
-                        // throw new NotImplementedException();
+                        throw new REException();
                     }
                 }
             }
@@ -316,14 +315,12 @@ namespace com.rackham.ApkRe
             Console.WriteLine("Building classes hierarchy -----------------");
             InheritanceHierarchyBuilder inheritanceBuilder =
                 new InheritanceHierarchyBuilder(_context);
-            if (!inheritanceBuilder.Build(_input.EnumerateClasses())) {
-                return;
-            }
+            inheritanceBuilder.Build(_input.EnumerateClasses());
 
-            foreach (IClass item in _input.EnumerateClasses()) {
+            foreach (IAnnotatableClass item in _input.EnumerateClasses()) {
                 int reversedMethodsCount;
                 Console.WriteLine("Reversing class '{0}' ----------------------------------",
-                    item.FullName);
+                    item.FullyQualifiedName);
                 ReverseClass(item, out reversedMethodsCount);
                 totalReversedMethodsCount += reversedMethodsCount;
                 reversedClassesCount++;
@@ -339,9 +336,9 @@ namespace com.rackham.ApkRe
         /// <param name="item">The class to be reversed.</param>
         /// <param name="reversedMethodsCount">On return this parameter is updated
         /// with the count of methods reversed within this class.</param>
-        private void ReverseClass(IClass item, out int reversedMethodsCount)
+        private void ReverseClass(IAnnotatableClass item, out int reversedMethodsCount)
         {
-            FileInfo targetFile = _treeHandler.GetClassFileName(item.Name);
+            FileInfo targetFile = _treeHandler.GetClassFileName(item);
             List<string> headerSourceCode = new List<string>();
             List<string> methodsSourceCode = new List<string>();
             StringBuilder methodsSourceCodeBuilder = new StringBuilder();
@@ -357,7 +354,7 @@ namespace com.rackham.ApkRe
 #if DBGCFG
                 bool debugClassCfg = item.IsAnnotatedWith(CfgDebugAnnotation.Id);
 #endif
-                foreach (IMethod method in item.EnumerateMethods()) {
+                foreach (IAnnotatableMethod method in item.EnumerateMethods()) {
 #if DBGCFG
                     bool debugMethodCfg = debugClassCfg || method.IsAnnotatedWith(CfgDebugAnnotation.Id);
 #endif

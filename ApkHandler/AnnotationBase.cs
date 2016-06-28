@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Security.Cryptography;
 
-using com.rackham.ApkHandler.API;
+using com.rackham.ApkJava.API;
 
 namespace com.rackham.ApkHandler
 {

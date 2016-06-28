@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
-using System.Text;
 
-using com.rackham.ApkHandler;
+using com.rackham.ApkJava;
+using com.rackham.ApkJava.API;
 using com.rackham.ApkHandler.API;
 
 namespace com.rackham.ApkHandler.Dex
@@ -85,9 +85,9 @@ namespace com.rackham.ApkHandler.Dex
         /// <summary>Provides an enumerable object suitable for use with foreach C#
         /// syntax that will enumerate classes from this file.</summary>
         /// <returns></returns>
-        public IEnumerable<IClass> EnumerateClasses()
+        public IEnumerable<IAnnotatableClass> EnumerateClasses()
         {
-            foreach (IClass item in Classes) { yield return item; }
+            foreach (IAnnotatableClass item in Classes) { yield return item; }
             yield break;
         }
 
@@ -114,13 +114,13 @@ namespace com.rackham.ApkHandler.Dex
                 if (0 > --nameItemIndex) {
                     if (null != scannedClass.SuperClass) { continue; }
                 }
-                IClass candidateSuperClass = scannedClass.SuperClass;
+                IJavaType candidateSuperClass = scannedClass.SuperClass;
                 while ((0 <= nameItemIndex) && (null != candidateSuperClass)) {
                     if (candidateSuperClass.Name != nameItems[nameItemIndex]) {
                         break;
                     }
                     nameItemIndex--;
-                    candidateSuperClass = candidateSuperClass.SuperClass;
+                    candidateSuperClass = candidateSuperClass.SuperType;
                 }
                 if ((0 <= nameItemIndex) || (null != candidateSuperClass)) { continue; }
                 if (null != result) {
@@ -216,7 +216,8 @@ namespace com.rackham.ApkHandler.Dex
             IClass result;
 
             if (!_externalClasses.TryGetValue(className, out result)) {
-                result = new ExternalClass(className);
+                // TODO : Unclear if this cast is always valid.
+                result = (IClass)ExternalClass.GetOrCreate(className);
                 _externalClasses[className] = result;
             }
             return result;
@@ -1212,18 +1213,15 @@ namespace com.rackham.ApkHandler.Dex
             foreach(KnownType scannedType in result.Types) {
                 if (null != scannedType.Definition) { continue; }
                 // This is an external type. Add a dummy definition.
-                scannedType.SetDefinition(new ExternalClass(scannedType.FullName));
+                JavaTypeDefinition definition =
+                    JavaTypeDefinition.TryGet(scannedType.FullName);
+                scannedType.SetDefinition(definition ?? ExternalClass.GetOrCreate(scannedType.FullName));
             }
             foreach (PendingClassResolution resolution in pendingResolutions) {
                 string superClassName = resolution.SuperClassName;
                 KnownType superClass = result.FindKnownType(superClassName);
                 if (null == superClass) { throw new ParseException(); }
-                if (superClass.Definition is ExternalClass) {
-                    resolution.Class.SetBaseClass(superClass.Definition.Name);
-                }
-                else {
-                    resolution.Class.SetBaseClass(superClass.Definition);
-                }
+                resolution.Class.SetBaseClass(superClass.Definition);
             }
             result.LinkMembersToClass(result.Methods);
             result.LinkMembersToClass(result.Fields);
@@ -1360,7 +1358,7 @@ namespace com.rackham.ApkHandler.Dex
         private class ExternalClass : BaseClassDefinition, IClass, IAnnotatable
         {
             #region CONSTRUCTORS
-            internal ExternalClass(string fullName)
+            private ExternalClass(string fullName)
                 : base(fullName)
             {
                 return;
@@ -1380,12 +1378,38 @@ namespace com.rackham.ApkHandler.Dex
             #endregion
 
             #region METHODS
-            internal override void SetBaseClass(IClass value)
+            public static JavaTypeDefinition GetOrCreate(string fullName)
+            {
+                if (string.IsNullOrEmpty(fullName)) {
+                    throw new ArgumentNullException();
+                }
+                bool isBuiltin = true;
+                // Array are special types.
+                if ('L' == fullName[0]) {
+                    isBuiltin = false;
+                    fullName = JavaHelpers.AssertNotEmpty(fullName).Substring(1);
+                }
+                int indirectionsCount = 0;
+                while ('[' == JavaHelpers.AssertNotEmpty(fullName)[0]) {
+                    indirectionsCount++;
+                    fullName = JavaHelpers.AssertNotEmpty(fullName).Substring(1);
+                }
+                if (!isBuiltin) { fullName = 'L' + fullName; }
+                JavaTypeDefinition result = JavaTypeDefinition.TryGet(fullName);
+                if (null == result) {
+                    result = new ExternalClass(fullName);
+                }
+                while (0 < indirectionsCount--) {
+                }
+                return result;
+            }
+
+            public override void SetBaseClass(IJavaType value)
             {
                 throw new InvalidOperationException();
             }
 
-            internal override void SetImplementedInterfaces(List<string> value)
+            public override void SetImplementedInterfaces(List<string> value)
             {
                 throw new InvalidOperationException();
             }

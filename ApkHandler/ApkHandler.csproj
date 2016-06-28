@@ -32,32 +32,16 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
+    <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AnnotationBase.cs" />
-    <Compile Include="API\IAnnotatable.cs" />
-    <Compile Include="API\IAnnotation.cs" />
-    <Compile Include="API\IClass.cs" />
-    <Compile Include="API\IField.cs" />
-    <Compile Include="API\IGuardHandler.cs" />
-    <Compile Include="API\IMethod.cs" />
-    <Compile Include="API\AccessFlags.cs" />
-    <Compile Include="API\IPrototype.cs" />
     <Compile Include="API\IResolver.cs" />
-    <Compile Include="API\ITryBlock.cs" />
     <Compile Include="API\IType.cs" />
     <Compile Include="ApkFile.cs" />
     <Compile Include="ApkFormatException.cs" />
     <Compile Include="ApkFormatNotSupportedException.cs" />
     <Compile Include="DalvikException.cs" />
-    <Compile Include="Dex\Annotation.cs" />
-    <Compile Include="Dex\AnnotationElement.cs" />
-    <Compile Include="Dex\AnnotationVisibility.cs" />
-    <Compile Include="Dex\BaseAnnotableObject.cs" />
     <Compile Include="Dex\BinaryReaderWithConsistency.cs" />
     <Compile Include="Dex\CC\ChunkType.cs" />
     <Compile Include="Dex\CC\CompressedFormatException.cs" />
@@ -81,23 +65,14 @@
     <Compile Include="Dex\CC\XmlResourceMap.cs" />
     <Compile Include="Dex\CC\XmlTreeItem.cs" />
     <Compile Include="Dex\ChecksumReader.cs" />
-    <Compile Include="Dex\ClassDefinition.cs" />
     <Compile Include="Dex\CC\CompressedXmlHandler.cs" />
     <Compile Include="Dex\Constants.cs" />
-    <Compile Include="Dex\DebugInfo.cs" />
     <Compile Include="Dex\DexFile.cs" />
-    <Compile Include="Dex\BaseClassDefinition.cs" />
-    <Compile Include="Dex\Field.cs" />
-    <Compile Include="Dex\GuardHandlers.cs" />
     <Compile Include="Dex\HashingReader.cs" />
     <Compile Include="Dex\Header.cs" />
-    <Compile Include="Dex\IClassMember.cs" />
     <Compile Include="Dex\KnownType.cs" />
     <Compile Include="Dex\MapItem.cs" />
-    <Compile Include="Dex\Method.cs" />
     <Compile Include="Dex\ParseException.cs" />
-    <Compile Include="Dex\Prototype.cs" />
-    <Compile Include="Dex\TryBlock.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="Messages.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -129,6 +104,16 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Messages.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ApkJava.Api\ApkJava.Api.csproj">
+      <Project>{6632eecd-941b-456d-a312-c3d5020766c3}</Project>
+      <Name>ApkJava.Api</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ApkJava\ApkJava.csproj">
+      <Project>{da213a61-2610-4cd0-9cf1-206a8ab1d3fd}</Project>
+      <Name>ApkJava</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-using com.rackham.ApkHandler.API;
+using com.rackham.ApkJava.API;
 
 namespace com.rackham.ApkRe.AST
 {
@@ -17,23 +17,23 @@ namespace com.rackham.ApkRe.AST
         #endregion
 
         #region METHODS
-        internal bool Build(IEnumerable<IClass> classes)
+        internal void Build(IEnumerable<IClass> classes)
         {
             if (null == classes) { throw new ArgumentNullException(); }
             Dictionary<string, IClass> resolved = new Dictionary<string, IClass>();
-            List<IClass> pending = new List<IClass>();
+            List<IJavaType> pending = new List<IJavaType>();
 
             foreach(IClass existing in classes) {
-                resolved.Add(existing.FullName, existing);
+                resolved.Add(existing.FullyQualifiedName, existing);
                 pending.Add(existing.SuperClass);
             }
             while (0 < pending.Count) {
-                IClass scannedClass = pending[0];
+                IJavaType scannedClass = pending[0];
                 pending.RemoveAt(0);
-                string seekedName = scannedClass.FullName;
+                string seekedName = scannedClass.FullyQualifiedName;
                 if (resolved.ContainsKey(seekedName)) { continue; }
             }
-            throw new NotImplementedException();
+            return;
         }
         #endregion
 

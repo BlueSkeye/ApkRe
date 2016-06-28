@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
 
-using com.rackham.ApkHandler.API;
+using com.rackham.ApkJava.API;
 
-namespace com.rackham.ApkHandler.Dex
+namespace com.rackham.ApkJava
 {
-    public abstract class BaseAnnotableObject
+    public abstract class BaseAnnotableObject : IAnnotatable
     {
         #region METHODS
         public void Annotate(IAnnotation annotation)
