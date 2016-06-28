@@ -6,34 +6,40 @@ using com.rackham.ApkJava.API;
 
 namespace com.rackham.ApkJava
 {
-    public abstract class BaseClassDefinition : BaseAnnotableObject, IClass
+    public abstract class BaseClassDefinition : JavaTypeDefinition, IClass
     {
         #region CONSTRUCTORS
         public BaseClassDefinition(string fullName)
+            : base(fullName)
         {
-            Name = JavaHelpers.GetUndecoratedClassName(fullName);
+            return;
         }
         #endregion
 
         #region PROPERTIES
         public virtual AccessFlags Access { get; set; }
 
-        public string FullName
+        public override bool IsBuiltin
         {
-            get
-            {
-                if (null == _fullName) {
-                    StringBuilder builder = new StringBuilder();
-                    builder.Append(Name);
-                    for(IClass superClass = SuperClass; null != superClass; superClass = superClass.SuperClass) {
-                        builder.Insert(0, "::");
-                        builder.Insert(0, superClass.Name);
-                    }
-                    _fullName = builder.ToString();
-                }
-                return _fullName;
-            }
+            get { return false; }
         }
+
+        //public string CanonicName
+        //{
+        //    get
+        //    {
+        //        if (null == _fullName) {
+        //            StringBuilder builder = new StringBuilder();
+        //            builder.Append(Name);
+        //            for (IJavaType superClass = SuperClass; null != superClass; superClass = superClass.SuperType) {
+        //                builder.Insert(0, "::");
+        //                builder.Insert(0, superClass.Name);
+        //            }
+        //            _fullName = builder.ToString();
+        //        }
+        //        return _fullName;
+        //    }
+        //}
 
         public bool IsAbstract
         {
@@ -57,14 +63,17 @@ namespace com.rackham.ApkJava
             get { return (null != _superClass); }
         }
 
-        public string Name { get; private set; }
+        INamespace IClass.Namespace
+        {
+            get { return base.Namespace; }
+        }
 
         public IClass OuterClass
         {
             get { return _outerClass; }
         }
 
-        public IClass SuperClass
+        public IJavaType SuperClass
         {
             get
             {
@@ -104,10 +113,10 @@ namespace com.rackham.ApkJava
             yield break;
         }
 
-        public virtual IEnumerable<IMethod> EnumerateMethods()
+        public virtual IEnumerable<IAnnotatableMethod> EnumerateMethods()
         {
             if (null != _methods) {
-                foreach (IMethod result in _methods) { yield return result; }
+                foreach (IAnnotatableMethod result in _methods) { yield return result; }
             }
             yield break;
         }
@@ -136,11 +145,12 @@ namespace com.rackham.ApkJava
             if (null != _superClassName) { throw new InvalidOperationException(); }
             if (string.IsNullOrEmpty(name)) { throw new ArgumentNullException(); }
             if (ObjectClassName == name) { _superClass = this; }
+            if ("ArrayAdapter" == name) { int i = 1; }
             _superClassName = name;
             return;
         }
 
-        public virtual void SetBaseClass(IClass value)
+        public virtual void SetBaseClass(IJavaType value)
         {
             if (null != _superClass) { throw new InvalidOperationException(); }
             if (null == value) { throw new ArgumentNullException(); }
@@ -167,7 +177,7 @@ namespace com.rackham.ApkJava
         private List<string> _implementedInterfaces;
         private List<IMethod> _methods;
         private IClass _outerClass;
-        private IClass _superClass;
+        private IJavaType _superClass;
         private string _superClassName;
         #endregion
     }

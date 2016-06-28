@@ -4,7 +4,11 @@ using com.rackham.ApkJava.API;
 
 namespace com.rackham.ApkJava
 {
-    public class ClassDefinition : BaseClassDefinition, IClass
+    public class ClassDefinition :
+        BaseClassDefinition,
+        IAnnotatable,
+        IAnnotatableClass,
+        IClass
     {
         #region CONSTRUCTORS
         public ClassDefinition(string className)
@@ -73,13 +77,13 @@ namespace com.rackham.ApkJava
             yield break;
         }
 
-        public override IEnumerable<IMethod> EnumerateMethods()
+        public override IEnumerable<IAnnotatableMethod> EnumerateMethods()
         {
             if (null != VirtualMethods) {
-                foreach (IMethod item in VirtualMethods) { yield return item; }
+                foreach (IAnnotatableMethod item in VirtualMethods) { yield return item; }
             }
             if (null != DirectMethods) {
-                foreach (IMethod item in DirectMethods) { yield return item; }
+                foreach (IAnnotatableMethod item in DirectMethods) { yield return item; }
             }
             yield break;
         }

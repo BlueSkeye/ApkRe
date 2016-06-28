@@ -37,8 +37,11 @@
     <Compile Include="Annotation.cs" />
     <Compile Include="AnnotationElement.cs" />
     <Compile Include="AnnotationVisibility.cs" />
+    <Compile Include="ArrayType.cs" />
+    <Compile Include="BuiltinType.cs" />
     <Compile Include="DebugInfo.cs" />
     <Compile Include="GuardHandlers.cs" />
+    <Compile Include="InvalidJavaTypeException.cs" />
     <Compile Include="Method.cs" />
     <Compile Include="BaseClassDefinition.cs" />
     <Compile Include="ClassDefinition.cs" />
@@ -50,6 +53,7 @@
     <Compile Include="BaseAnnotableObject.cs" />
     <Compile Include="Prototype.cs" />
     <Compile Include="TryBlock.cs" />
+    <Compile Include="JavaTypeDefinition.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ApkJava.Api\ApkJava.Api.csproj">

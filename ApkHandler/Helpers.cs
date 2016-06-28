@@ -336,6 +336,7 @@ namespace com.rackham.ApkHandler
         internal static bool IsValidTypeDescriptor(string candidate)
         {
             if (string.IsNullOrEmpty(candidate)) { return false; }
+            // Special case "void" descriptor used as a return type
             if ("V" == candidate) { return true; }
             int indexesCount = 0;
             while (candidate.StartsWith("[")) {
@@ -346,8 +347,7 @@ namespace com.rackham.ApkHandler
             if (255 < indexesCount) { return false; }
             // NOTA : Array dimensions already handled.
             if (candidate.StartsWith("L")) { return IsValidClassName(candidate, false); }
-            switch (candidate)
-            {
+            switch (candidate) {
                 case "Z":
                 case "B":
                 case "S":

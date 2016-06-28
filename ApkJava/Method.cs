@@ -5,7 +5,12 @@ using com.rackham.ApkJava.API;
 
 namespace com.rackham.ApkJava
 {
-    public class Method : BaseAnnotableObject, IAnnotatable, IMethod, IClassMember
+    public class Method :
+        BaseAnnotableObject,
+        IAnnotatable,
+        IAnnotatableMethod,
+        IMethod,
+        IClassMember
     {
         #region CONSTRUCTORS
         public Method(string className, string methodName, Prototype methodPrototype)

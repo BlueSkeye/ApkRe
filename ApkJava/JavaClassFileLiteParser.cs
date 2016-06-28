@@ -53,8 +53,7 @@ namespace com.rackham.ApkJava
                     JavaFieldInfo[] fields = ParseArray(input, JavaFieldInfo.ReadItem);
                     JavaMethodInfo[] methods = ParseArray(input, JavaMethodInfo.ReadItem);
                     JavaAttributeInfo[] attributes = ParseArray(input, JavaAttributeInfo.ReadItem);
-                    using (MemoryStream poolStream = new MemoryStream(constantPool))
-                    {
+                    using (MemoryStream poolStream = new MemoryStream(constantPool)) {
                         constantPool = null;
                         string thisClassName = poolStream.ReadClassInfo(thisClass);
                         ExternalClass result = new ExternalClass(thisClassName);
@@ -62,13 +61,11 @@ namespace com.rackham.ApkJava
                             ? BaseClassDefinition.ObjectClassName
                             : poolStream.ReadClassInfo(superClass));
                         List<string> interfaces = new List<string>();
-                        for (int index = 0; index < interfacesIndex.Length; index++)
-                        {
+                        for (int index = 0; index < interfacesIndex.Length; index++) {
                             interfaces.Add(poolStream.ReadClassInfo(interfacesIndex[index]));
                         }
                         result.SetImplementedInterfaces(interfaces);
-                        for (int index = 0; index < fields.Length; index++)
-                        {
+                        for (int index = 0; index < fields.Length; index++) {
                             string fieldDescriptor = poolStream.ReadUtf8(fields[index].descriptor_index);
                             throw new NotImplementedException();
                             //Field newField = new Field(thisClassName,
@@ -79,8 +76,7 @@ namespace com.rackham.ApkJava
                     }
                 }
             }
-            catch (Exception e)
-            {
+            catch (Exception e) {
                 Console.WriteLine("Failed to parse java class file '{0}'. Error : {1}",
                     classFile.FullName, e.Message);
                 return null;
@@ -92,11 +88,9 @@ namespace com.rackham.ApkJava
         {
             ushort resultsCount = input.ReadUInt16();
             T[] result = null;
-            if (0 < resultsCount)
-            {
+            if (0 < resultsCount) {
                 result = new T[resultsCount];
-                for (int index = 0; index < resultsCount; index++)
-                {
+                for (int index = 0; index < resultsCount; index++) {
                     result[index] = reader(input);
                 }
             }
@@ -142,8 +136,7 @@ namespace com.rackham.ApkJava
             poolStream.SeekTo(index);
             poolStream.AssertPoolTag(ConstantPoolTag.Utf8);
             byte[] buffer = new byte[poolStream.ReadUInt8()];
-            if (buffer.Length != poolStream.Read(buffer, 0, buffer.Length))
-            {
+            if (buffer.Length != poolStream.Read(buffer, 0, buffer.Length)) {
                 throw new JavaClassParsingException();
             }
             return UTF8Encoding.UTF8.GetString(buffer);
@@ -151,8 +144,7 @@ namespace com.rackham.ApkJava
 
         private static void SeekTo(this Stream input, ushort to)
         {
-            if (to != input.Seek(to, SeekOrigin.Begin))
-            {
+            if (to != input.Seek(to, SeekOrigin.Begin)) {
                 throw new JavaClassParsingException();
             }
         }
@@ -212,11 +204,9 @@ namespace com.rackham.ApkJava
 
                 result.attribute_name_index = ReadUInt16(input);
                 result.attribute_length = ReadUInt32(input);
-                if (0 < result.attribute_length)
-                {
+                if (0 < result.attribute_length) {
                     result.attributes = new byte[result.attribute_length];
-                    if (result.attributes.Length != input.Read(result.attributes, 0, result.attributes.Length))
-                    {
+                    if (result.attributes.Length != input.Read(result.attributes, 0, result.attributes.Length)) {
                         throw new JavaClassParsingException();
                     }
                 }

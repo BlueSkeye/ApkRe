@@ -6,7 +6,7 @@ using com.rackham.ApkJava.API;
 
 namespace com.rackham.ApkJava
 {
-    public abstract class BaseAnnotableObject
+    public abstract class BaseAnnotableObject : IAnnotatable
     {
         #region METHODS
         public void Annotate(IAnnotation annotation)

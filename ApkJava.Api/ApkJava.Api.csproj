@@ -7,7 +7,7 @@
     <ProjectGuid>{6632EECD-941B-456D-A312-C3D5020766C3}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ApkJava.Api</RootNamespace>
+    <RootNamespace>com.rackham.ApkJava.API</RootNamespace>
     <AssemblyName>ApkJava.Api</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -44,8 +44,10 @@
     <Compile Include="IField.cs" />
     <Compile Include="IGuardHandler.cs" />
     <Compile Include="IMethod.cs" />
+    <Compile Include="INamespace.cs" />
     <Compile Include="IPrototype.cs" />
     <Compile Include="ITryBlock.cs" />
+    <Compile Include="IJavaType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

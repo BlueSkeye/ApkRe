@@ -37,11 +37,17 @@ namespace com.rackham.ApkRe
             };
         }
 
+        private static readonly string[] ObjectParseResult = new string[] { "java", "lang", "object" };
+
         private static string[] ParseClassName(string candidate)
         {
             if (string.IsNullOrEmpty(candidate)) { throw new ArgumentNullException(); }
             int candidateLength = candidate.Length;
             if (2 >= candidateLength) { throw new ArgumentException(); }
+            // Special case
+            if ("Object"== candidate) {
+                return (string[])ObjectParseResult.Clone();
+            }
             if (('L' != candidate[0]) || (';' != candidate[candidateLength - 1])) {
                 throw new ArgumentException();
             }

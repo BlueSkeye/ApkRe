@@ -18,13 +18,13 @@ namespace com.rackham.ApkHandler.Dex
         #endregion
 
         #region PROPERTIES
-        internal IClass Definition { get; private set; }
+        internal IJavaType Definition { get; private set; }
 
         public string FullName { get; private set; }
         #endregion
 
         #region METHODS
-        internal void SetDefinition(IClass value)
+        internal void SetDefinition(IJavaType value)
         {
             if (null != Definition) { throw new InvalidOperationException(); }
             Definition = value;

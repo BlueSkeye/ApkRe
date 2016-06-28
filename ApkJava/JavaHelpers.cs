@@ -8,6 +8,11 @@ namespace com.rackham.ApkJava
 {
     public static class JavaHelpers
     {
+        public static string AssertNotEmpty(string value)
+        {
+            if (!string.IsNullOrEmpty(value)) { return value; }
+            throw new ArgumentNullException();
+        }
 
         public static string BuildMethodDeclarationString(IMethod from, bool demangle = true)
         {
@@ -46,20 +51,20 @@ namespace com.rackham.ApkJava
         /// <summary>Starting from a full encoded Dalvik class name as defined in "Type descriptor
         /// semantics", resolve to a Java type name and split apart the simple class name and the
         /// namespace name.</summary>
-        /// <param name="fullDalvikTypeName"></param>
+        /// <param name="fullyQualifiedName"></param>
         /// <param name="namespaceName"></param>
         /// <returns></returns>
-        public static string GetCanonicTypeName(string fullDalvikTypeName, out string namespaceName)
+        public static string GetCanonicTypeName(string fullyQualifiedName, out string namespaceName)
         {
             int arrayDimensions = 0;
 
-            while (fullDalvikTypeName.StartsWith("[")) {
+            while (fullyQualifiedName.StartsWith("[")) {
                 arrayDimensions++;
-                fullDalvikTypeName = fullDalvikTypeName.Substring(1);
+                fullyQualifiedName = fullyQualifiedName.Substring(1);
             }
             namespaceName = null;
             string canonicType;
-            switch (fullDalvikTypeName) {
+            switch (fullyQualifiedName) {
                 case "V":
                     canonicType = "void";
                     break;
@@ -88,10 +93,8 @@ namespace com.rackham.ApkJava
                     canonicType = "double";
                     break;
                 default:
-                    if (!fullDalvikTypeName.StartsWith("L")) { throw new JavaClassParsingException(); }
-                    if (!fullDalvikTypeName.EndsWith(";")) { throw new JavaClassParsingException(); }
-                    fullDalvikTypeName = fullDalvikTypeName.Substring(1, fullDalvikTypeName.Length - 2);
-                    string[] item = fullDalvikTypeName.Split('/');
+                    string[] item =
+                        fullyQualifiedName.Split(JavaTypeDefinition.NamespaceItemSeparator);
                     namespaceName = string.Empty;
                     for (int index = 0; index < (item.Length - 1); index++) {
                         if (0 < index) { namespaceName += "."; }
@@ -102,17 +105,6 @@ namespace com.rackham.ApkJava
             }
             for (int index = 0; index < arrayDimensions; index++) { canonicType += "[]"; }
             return canonicType;
-        }
-
-        public static string GetUndecoratedClassName(string candidate)
-        {
-            return candidate;
-
-            //// TODO : Handle inner classes naming convention.
-            //if (('L' != candidate[0]) || (';' != candidate[candidate.Length - 1])) {
-            //    return candidate;
-            //}
-            //return candidate.Substring(1, candidate.Length - 2);
         }
     }
 }
