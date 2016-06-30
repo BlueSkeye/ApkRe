@@ -3,8 +3,8 @@ namespace com.rackham.ApkJava.API
 {
     public interface IClassMember
     {
-        string ClassName { get; }
+        void LinkTo(IJavaType owner);
 
-        void LinkTo(IClass owner);
+        IJavaType OwningType { get; }
     }
 }

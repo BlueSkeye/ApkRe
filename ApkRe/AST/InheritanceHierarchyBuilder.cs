@@ -24,13 +24,13 @@ namespace com.rackham.ApkRe.AST
             List<IJavaType> pending = new List<IJavaType>();
 
             foreach(IClass existing in classes) {
-                resolved.Add(existing.FullyQualifiedName, existing);
+                resolved.Add(existing.FullyQualifiedBinaryName, existing);
                 pending.Add(existing.SuperClass);
             }
             while (0 < pending.Count) {
                 IJavaType scannedClass = pending[0];
                 pending.RemoveAt(0);
-                string seekedName = scannedClass.FullyQualifiedName;
+                string seekedName = scannedClass.FullyQualifiedBinaryName;
                 if (resolved.ContainsKey(seekedName)) { continue; }
             }
             return;

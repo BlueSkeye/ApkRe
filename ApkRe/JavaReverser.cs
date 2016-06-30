@@ -51,33 +51,36 @@ namespace com.rackham.ApkRe
         /// - The class definition including the type it extends and the interfaces it
         ///   implements.</summary>
         /// <param name="definition">Class definition.</param>
-        /// <param name="namespaceByImportedType"></param>
+        /// <param name="importedTypes"></param>
         /// <returns>A <see cref="StringBuilder"/> holding the source code.</returns>
         private StringBuilder BuildClassHeaderSourceCode(IClass definition,
-            Dictionary<string, string> namespaceByImportedType)
+            List<IJavaType> importedTypes)
         {
             StringBuilder resultBuilder = new StringBuilder();
-            string thisClassNamespace;
-            string thisClassCanonicName = JavaHelpers.GetCanonicTypeName(definition.Name, out thisClassNamespace);
+            string thisClassJavaNamespace = definition.NamespaceJavaName;
+            // string thisClassCanonicName = JavaHelpers.GetCanonicTypeName(definition.Name, out thisClassNamespace);
+            string thisClassCanonicName = definition.Name;
 
             // Resolve implemented interfaces namespaces.
             List<string> simpleInterfaceNames = new List<string>();
-            string simpleBaseClassName = GetCanonicTypeName(definition.SuperClass.Name,
-                namespaceByImportedType);
+            string simpleBaseClassName = definition.SuperClass.Name;
 
             foreach (string fullInterfaceName in definition.EnumerateImplementedInterfaces()) {
-                string simpleInterfaceName = GetCanonicTypeName(fullInterfaceName, namespaceByImportedType);
+                string simpleInterfaceName = fullInterfaceName;
                 simpleInterfaceNames.Add(simpleInterfaceName);
             }
 
-            resultBuilder.AppendFormat("package {0};\n", thisClassNamespace);
+            if (!string.IsNullOrEmpty(thisClassJavaNamespace)) {
+                resultBuilder.AppendFormat("package {0};\n", thisClassJavaNamespace);
+            }
             resultBuilder.Append("\n");
-            foreach (KeyValuePair<string, string> pair in namespaceByImportedType) {
+            foreach (IJavaType importedType in importedTypes) {
                 // Types from the same namespace than the reversed class are automatically
                 // imported. No needs to emit an import directive.
-                if (pair.Value == thisClassNamespace) { continue; }
-                resultBuilder.AppendFormat(string.Format("import {0}.{1};\n", pair.Value, pair.Key));
+                if (object.ReferenceEquals(importedType.NamespaceJavaName, thisClassJavaNamespace)) { continue; }
+                resultBuilder.AppendFormat(string.Format("import {0};\n", importedType.FullyQualifiedJavaName));
             }
+            resultBuilder.AppendLine();
             resultBuilder.Append(Helpers.GetModifiersSourceCode(definition.Access));
             if (definition.IsEnumeration) { resultBuilder.Append("enum "); }
             else if (definition.IsInterface) { resultBuilder.Append("interface "); }
@@ -95,10 +98,8 @@ namespace com.rackham.ApkRe
         private string BuildFieldDefinition(IField field,
             Dictionary<string, string> namespaceByImportedType)
         {
-            string canonicFieldType =
-                GetCanonicTypeName(field.Class.FullyQualifiedName, namespaceByImportedType);
             return string.Format("{0} {1} {2};",
-                Helpers.GetModifiersSourceCode(field.AccessFlags), canonicFieldType,
+                Helpers.GetModifiersSourceCode(field.AccessFlags), field.FieldType.FullyQualifiedJavaName,
                 field.Name);
         }
 
@@ -244,48 +245,19 @@ namespace com.rackham.ApkRe
             Dictionary<string, string> namespaceByImportedType)
         {
             into.Append(Helpers.GetModifiersSourceCode(method.AccessFlags));
-            string canonicReturnType =
-                GetCanonicTypeName(method.Prototype.ReturnType, namespaceByImportedType);
-            into.Append(canonicReturnType + " " + method.Name + " (");
+            into.Append(method.Prototype.ReturnType.FullyQualifiedBinaryName + " " + method.Name + " (");
             int parameterIndex = 0;
             int parametersCount = (null == method.Prototype.ParametersType)
                 ? 0
                 : method.Prototype.ParametersType.Count;
             for(int index = 0; index < parametersCount; index++) {
-                string fullParameterType = method.Prototype.ParametersType[index];
-                string canonicParameterType =
-                    GetCanonicTypeName(fullParameterType, namespaceByImportedType);
-
+                string fullParameterType = method.Prototype.ParametersType[index].FullyQualifiedBinaryName;
                 if (0 < index) { into.Append(", "); }
-                into.AppendFormat("{0} p{1}", canonicParameterType, parameterIndex++);
+                into.AppendFormat("{0} p{1}", fullParameterType, parameterIndex++);
             }
             into.AppendLine(")");
             into.AppendLine("{");
             return;
-        }
-
-        /// <summary>Starting from the given Dalvik full type name, translate it to a Java
-        /// syntax type name. Also attempt to remove the result namespace taking care to
-        /// resolve homonimy conflicts.</summary>
-        /// <param name="fullyQualifiedName"></param>
-        /// <param name="namespaceByImportedType">A dictionary of import namespaces keyed
-        /// by the imported class name.</param>
-        /// <returns></returns>
-        private string GetCanonicTypeName(string fullyQualifiedName,
-            Dictionary<string, string> namespaceByImportedType)
-        {
-            string alreadyRegisteredNamespace;
-            string candidateNamespace;
-            string simpleClassName =
-                JavaHelpers.GetCanonicTypeName(fullyQualifiedName, out candidateNamespace);
-
-            if (null == candidateNamespace) { return simpleClassName; }
-            if (!namespaceByImportedType.TryGetValue(simpleClassName, out alreadyRegisteredNamespace)) {
-                namespaceByImportedType[simpleClassName] = candidateNamespace;
-                return simpleClassName;
-            }
-            if (alreadyRegisteredNamespace == candidateNamespace) { return simpleClassName; }
-            return fullyQualifiedName;
         }
 
         /// <summary>The main method for this class. Will reverse every class in turn.
@@ -320,7 +292,7 @@ namespace com.rackham.ApkRe
             foreach (IAnnotatableClass item in _input.EnumerateClasses()) {
                 int reversedMethodsCount;
                 Console.WriteLine("Reversing class '{0}' ----------------------------------",
-                    item.FullyQualifiedName);
+                    item.FullyQualifiedBinaryName);
                 ReverseClass(item, out reversedMethodsCount);
                 totalReversedMethodsCount += reversedMethodsCount;
                 reversedClassesCount++;
@@ -343,11 +315,17 @@ namespace com.rackham.ApkRe
             List<string> methodsSourceCode = new List<string>();
             StringBuilder methodsSourceCodeBuilder = new StringBuilder();
             StringBuilder fieldsSourceCodeBuilder = new StringBuilder();
+            // TODO : Get rid of this dictionary.
             Dictionary<string, string> namespaceByImportedType = new Dictionary<string,string>();
+            List<IJavaType> importedTypes = new List<IJavaType>();
 
             reversedMethodsCount = 0;
             if (!item.IsAbstract) {
                 foreach (IField field in item.EnumerateFields()) {
+                    IJavaType fieldType = field.FieldType;
+                    if (!importedTypes.Contains(fieldType)) {
+                        importedTypes.Add(fieldType);
+                    }
                     fieldsSourceCodeBuilder.AppendLine(
                         BuildFieldDefinition(field, namespaceByImportedType));
                 }
@@ -387,7 +365,7 @@ namespace com.rackham.ApkRe
                         int i = 1;
                     }
                     // Go on now with the AST tree. This is where we perform the real job.
-                    //AstNode methodRootAstNode =
+                    // AstNode methodRootAstNode =
                     //    AstBuilder.BuildTree(method, sparseInstructions, methodRootCfgNode, _objectResolver);
                     
                     //// Here we are we a basic CFG graph and an AST tree that is composed only
@@ -400,13 +378,15 @@ namespace com.rackham.ApkRe
             }
 
             FileStream stream = null;
+            Console.WriteLine("Generating source code in {0} -------------------------",
+                targetFile.FullName);
 
             try {
                 stream = File.Open(targetFile.FullName, FileMode.Create, FileAccess.ReadWrite,
                     FileShare.ReadWrite);
 
                 using (StreamWriter writer = new StreamWriter(stream)) {
-                    writer.Write(BuildClassHeaderSourceCode(item, namespaceByImportedType).ToString());
+                    writer.Write(BuildClassHeaderSourceCode(item, importedTypes).ToString());
                     writer.WriteLine("// FIELDS -----------------");
                     writer.Write(fieldsSourceCodeBuilder.ToString());
                     writer.WriteLine("// METHODS -----------------");

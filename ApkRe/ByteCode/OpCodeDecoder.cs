@@ -477,7 +477,7 @@ namespace com.rackham.ApkRe.ByteCode
             IField field = objectResolver.ResolveField(index);
 
             if (null == field) { throw new REException(); }
-            return field.Class.Name + "/" + field.Name;
+            return field.FieldType.Name + "/" + field.Name;
         }
 
         private static string ResolveMethod(IResolver objectResolver, ushort index)
@@ -485,7 +485,7 @@ namespace com.rackham.ApkRe.ByteCode
             IMethod method = objectResolver.ResolveMethod(index);
 
             if (null == method) { throw new REException(); }
-            return method.Class.Name + "/" + method.Name;
+            return method.OwningType.Name + "/" + method.Name;
         }
 
         private static string ResolveString(IResolver objectResolver, ushort index)

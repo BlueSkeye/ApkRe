@@ -129,7 +129,7 @@ namespace com.rackham.ApkJava
         public void RegisterField(IField field)
         {
             if (null == field) { throw new ArgumentNullException(); }
-            if (!object.ReferenceEquals(this, field.Class)) {
+            if (!object.ReferenceEquals(this, field.FieldType)) {
                 throw new ArgumentException();
             }
             lock (this) {

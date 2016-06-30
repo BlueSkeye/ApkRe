@@ -13,9 +13,9 @@ namespace com.rackham.ApkJava
         IClassMember
     {
         #region CONSTRUCTORS
-        public Method(string className, string methodName, Prototype methodPrototype)
+        public Method(IJavaType owningtype, string methodName, Prototype methodPrototype)
         {
-            ClassName = className;
+            OwningType = owningtype;
             // Helpers.GetUndecoratedClassName(className);
             Name = methodName;
             Prototype = methodPrototype;
@@ -40,9 +40,7 @@ namespace com.rackham.ApkJava
 
         public uint ByteCodeRawAddress { get; set; }
 
-        public IClass Class { get; private set; }
-
-        public string ClassName { get; private set; }
+        public IJavaType OwningType { get; private set; }
 
         public DebugInfo DebugInfo { get; set; }
 
@@ -80,10 +78,10 @@ namespace com.rackham.ApkJava
             return (null == ByteCode) ? null : (byte[])ByteCode.Clone();
         }
 
-        public void LinkTo(IClass owner)
+        public void LinkTo(IJavaType owner)
         {
-            if (null != Class) { throw new InvalidOperationException(); }
-            Class = owner;
+            if (null != OwningType) { throw new InvalidOperationException(); }
+            OwningType = owner;
             return;
         }
         #endregion

@@ -7,8 +7,8 @@ namespace com.rackham.ApkJava
     public class Prototype : IPrototype
     {
         #region CONSTRUCTORS
-        public Prototype(string returnType, string shortDescriptor,
-            List<string> parametersType)
+        public Prototype(IJavaType returnType, string shortDescriptor,
+            List<IJavaType> parametersType)
         {
             ReturnType = returnType;
             ShortDescriptor = shortDescriptor;
@@ -18,10 +18,8 @@ namespace com.rackham.ApkJava
         #endregion
 
         #region PROPERTIES
-        public List<string> ParametersType { get; private set; }
-
-        public string ReturnType { get; private set; }
-
+        public List<IJavaType> ParametersType { get; private set; }
+        public IJavaType ReturnType { get; private set; }
         internal string ShortDescriptor { get; private set; }
         #endregion
     }

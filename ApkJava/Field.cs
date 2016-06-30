@@ -8,11 +8,11 @@ namespace com.rackham.ApkJava
     public class Field : IField, IClassMember
     {
         #region CONSTRUCTORS
-        public Field(string owningClass, string type, string name)
+        public Field(IJavaType owningType, IJavaType type, string name)
         {
-            ClassName = owningClass;
+            OwningType = owningType;
             Name = name;
-            TypeName = type;
+            FieldType = type;
             return;
         }
         #endregion
@@ -22,20 +22,18 @@ namespace com.rackham.ApkJava
 
         public List<Annotation> Annotations { get; set; }
 
-        public IClass Class { get; private set; }
-
-        public string ClassName { get; private set; }
+        public IJavaType FieldType { get; private set; }
 
         public string Name { get; private set; }
 
-        internal string TypeName { get; private set; }
+        public IJavaType OwningType { get; private set; }
         #endregion
 
         #region METHODS
-        public void LinkTo(IClass owner)
+        public void LinkTo(IJavaType owner)
         {
-            if (null != Class) { throw new InvalidOperationException(); }
-            Class = owner;
+            if (null != FieldType) { throw new InvalidOperationException(); }
+            OwningType = owner;
             ((BaseClassDefinition)owner).RegisterField(this);
             return;
         }

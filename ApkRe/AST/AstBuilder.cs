@@ -24,7 +24,7 @@ namespace com.rackham.ApkRe.AST
         internal static AstNode BuildTree(IMethod method, DalvikInstruction[] sparseInstructions,
             CfgNode methodRootCfgNode, IResolver objectResolver)
         {
-            Console.WriteLine("Building '{0}' method ASTree. Method starting at 0x{2:X8}.",
+            Console.WriteLine("Building '{0}' method ASTree. Method starting at 0x{1:X8}.",
                 method.Name, method.ByteCodeRawAddress);
             AstNode rootNode = new AstNode(method);
             byte[] byteCode = method.GetByteCode();

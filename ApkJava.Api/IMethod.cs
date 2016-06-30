@@ -8,7 +8,7 @@ namespace com.rackham.ApkJava.API
         AccessFlags AccessFlags { get; }
         uint ByteCodeRawAddress { get; }
         uint ByteCodeSize { get; }
-        IClass Class { get; }
+        IJavaType OwningType { get; }
         string Name { get; }
         IPrototype Prototype { get; }
         #endregion

@@ -217,7 +217,7 @@ namespace com.rackham.ApkHandler.Dex
 
             if (!_externalClasses.TryGetValue(className, out result)) {
                 // TODO : Unclear if this cast is always valid.
-                result = (IClass)ExternalClass.GetOrCreate(className);
+                result = (IClass)GetOrCreateTypeDefinition(className);
                 _externalClasses[className] = result;
             }
             return result;
@@ -286,6 +286,42 @@ namespace com.rackham.ApkHandler.Dex
             return this.Methods[(int)methodNameIndex];
         }
 
+        public delegate JavaTypeDefinition TypeInstanciatorDelegate(string fullName);
+
+        public static JavaTypeDefinition GetOrCreateTypeDefinition(string fullName,
+            TypeInstanciatorDelegate instanciator = null)
+        {
+            if (string.IsNullOrEmpty(fullName)) {
+                throw new ArgumentNullException();
+            }
+            bool isBuiltin = true;
+            // Array are special types.
+            if ('L' == fullName[0]) {
+                isBuiltin = false;
+                fullName = JavaHelpers.AssertNotEmpty(fullName).Substring(1);
+            }
+            int indirectionsCount = 0;
+            while ('[' == JavaHelpers.AssertNotEmpty(fullName)[0]) {
+                indirectionsCount++;
+                fullName = JavaHelpers.AssertNotEmpty(fullName).Substring(1);
+            }
+            if (!isBuiltin) { fullName = 'L' + fullName; }
+            JavaTypeDefinition result = JavaTypeDefinition.TryGet(fullName);
+            if (null == result) {
+                result = (null == instanciator)
+                    ? new ExternalClass(fullName)
+                    : instanciator(fullName);
+            }
+            while (0 < indirectionsCount--) {
+                ArrayType array = JavaTypeDefinition.NamingspaceItem.Root.TryGetArrayOf(result);
+                if (null == array) {
+                    array = new ArrayType(result);
+                }
+                result = array;
+            }
+            return result;
+        }
+
         /// <summary>Enumerate the item collection and for each in turn find the class
         /// instance from the class name located in the item then link the item to the
         /// class.</summary>
@@ -296,15 +332,17 @@ namespace com.rackham.ApkHandler.Dex
             where T : IClassMember
         {
             foreach (IClassMember scannedItem in items) {
-                string className = scannedItem.ClassName;
-                IClass owner = null;
-                foreach (ClassDefinition scannedClass in this.Classes) {
-                    if (scannedClass.Name == className) {
-                        owner = scannedClass;
-                        break;
+                IJavaType owner = scannedItem.OwningType;
+                // TODO : Remove this control once we are assured it is implemented
+                // in the contract.
+                IJavaType currentOwner = scannedItem.OwningType;
+                if (null != currentOwner) {
+                    if (object.ReferenceEquals(currentOwner, owner)) {
+                        continue;
                     }
+                    throw new DalvikException();
                 }
-                scannedItem.LinkTo((null == owner) ? this.GetExternalClass(className) : owner);
+                scannedItem.LinkTo(owner);
             }
         }
 
@@ -375,7 +413,7 @@ namespace com.rackham.ApkHandler.Dex
                 // there should be in the format specified by "type_list" below. Each of the
                 // elements of the list must be a class type (not an array or primitive type),
                 // and there must not be any duplicates.
-                List<string> interfaces = LoadTypeList(reader);
+                List<string> interfaces = LoadTypenameList(reader);
                 // index into the string_ids list for the name of the file containing the original
                 // source for (at least most of) this class, or the special value NO_INDEX to
                 // represent a lack of this information. The debug_info_item of any given method
@@ -452,8 +490,10 @@ namespace com.rackham.ApkHandler.Dex
 
         private ClassDefinition LoadClassData(BinaryReader reader, string className)
         {
-            ClassDefinition result = new ClassDefinition(className);
+            ClassDefinition result = JavaTypeDefinition.TryGet(className) as ClassDefinition;
 
+            // The definition must already exist otherwise we messed somewhere.
+            if (null == result) { throw new DalvikException(); }
             uint classDataOffset = reader.ReadUInt32();
             if (0 == classDataOffset) { return result; }
             Header.AssertOffsetInDataSection(classDataOffset);
@@ -954,7 +994,7 @@ namespace com.rackham.ApkHandler.Dex
             for (uint index = 0; index < listSize; index++) {
                 // index into the type_ids list for the definer of this field.
                 // This must be a class type, and not an array or primitive type.
-                string owningType = GetMemberClassNameFromIndex(reader);
+                string owningTypeName = GetMemberClassNameFromIndex(reader);
 
                 // index into the type_ids list for the type of this field.
                 ushort typeIndex = reader.ReadUInt16();
@@ -967,7 +1007,9 @@ namespace com.rackham.ApkHandler.Dex
                 if (nameIndex >= this.Strings.Count) { throw new ParseException(); }
                 string fieldName = this.Strings[(int)nameIndex];
                 if (!Helpers.IsValidMemberName(fieldName)) { throw new ParseException(); }
-                Fields.Add(new Field(owningType, fieldTypeName, fieldName));
+                IJavaType owningType = JavaTypeDefinition.Get(owningTypeName);
+                IJavaType fieldType = JavaTypeDefinition.Get(fieldTypeName);
+                Fields.Add(new Field(owningType, fieldType, fieldName));
             }
             return;
         }
@@ -1013,7 +1055,7 @@ namespace com.rackham.ApkHandler.Dex
             for (uint index = 0; index < listSize; index++) {
                 // index into the type_ids list for the definer of this method. This must be a
                 // class or array type, and not a primitive type.
-                string className = GetMemberClassNameFromIndex(reader);
+                string ownerName = GetMemberClassNameFromIndex(reader);
                 // index into the proto_ids list for the prototype of this method
                 ushort prototypeIndex = reader.ReadUInt16();
                 if (prototypeIndex >= this.Prototypes.Count) { throw new ParseException(); }
@@ -1024,8 +1066,8 @@ namespace com.rackham.ApkHandler.Dex
                 if (nameIndex >= this.Strings.Count) { throw new ParseException(); }
                 string methodName = this.Strings[(int)nameIndex];
                 if (!Helpers.IsValidMemberName(methodName)) { throw new ParseException(); }
-
-                this.Methods.Add(new Method(className, methodName, methodPrototype));
+                IJavaType owningType = JavaTypeDefinition.Get(ownerName);
+                this.Methods.Add(new Method(owningType, methodName, methodPrototype));
             }
 
             return;
@@ -1099,13 +1141,20 @@ namespace com.rackham.ApkHandler.Dex
                 string shortDescriptor = this.Strings[(int)shortIndex];
                 if (!Helpers.IsValidShortDescriptor(shortDescriptor)) { throw new ParseException(); }
                 // index into the type_ids list for the return type of this prototype
-                string returnType = GetKnownTypeName(reader, false);
+                string returnTypeName = GetKnownTypeName(reader, false);
                 // offset from the start of the file to the list of parameter types for
                 // this prototype, or 0 if this prototype has no parameters. This offset,
                 // if non-zero, should be in the data section, and the data there should
                 // be in the format specified by "type_list" below. Additionally, there
                 // should be no reference to the type void in the list.
-                List<string> parameters = LoadTypeList(reader);
+                List<IJavaType> parameters = LoadTypeList(reader);
+                IJavaType returnType = JavaTypeDefinition.TryGet(returnTypeName);
+                if (null == returnType) {
+                    returnType = GetOrCreateTypeDefinition(returnTypeName);
+                    if (null == returnType) {
+                        throw new DalvikException();
+                    }
+                }
                 this.Prototypes.Add(new Prototype(returnType, shortDescriptor, parameters));
             }
             return;
@@ -1117,23 +1166,47 @@ namespace com.rackham.ApkHandler.Dex
         /// startup.</summary>
         /// <param name="reader"></param>
         /// <returns></returns>
-        private List<string> LoadTypeList(BinaryReader reader)
+        private List<IJavaType> LoadTypeList(BinaryReader reader)
+        {
+            return _LoadTypeList<IJavaType>(reader, true);
+        }
+
+        private List<string> LoadTypenameList(BinaryReader reader)
+        {
+            return _LoadTypeList<string>(reader, false);
+        }
+
+        private List<T> _LoadTypeList<T>(BinaryReader reader, bool resolve)
+            where T :  class
         {
             uint listOffset = reader.ReadUInt32();
             if (0 == listOffset) { return null; }
             this.Header.AssertOffsetInDataSection(listOffset);
             long savedPosition = reader.BaseStream.Position;
-            reader.BaseStream.Position = listOffset;
-            List<string> result = new List<string>();
-            // size of the list, in entries
-            uint listSize = reader.ReadUInt32();
+            try {
+                reader.BaseStream.Position = listOffset;
+                List<T> result = new List<T>();
+                // size of the list, in entries
+                uint listSize = reader.ReadUInt32();
 
-            for(int index = 0; index < listSize; index++) {
-                // index into the type_ids list
-                result.Add(GetKnownTypeName(reader, true));
+                for(int index = 0; index < listSize; index++) {
+                    // index into the type_ids list
+                    string parameterTypeName = GetKnownTypeName(reader, true);
+                    if (resolve) {
+                        IJavaType parameterType = JavaTypeDefinition.TryGet(parameterTypeName);
+                        if (null == parameterType) {
+                            parameterType = GetOrCreateTypeDefinition(parameterTypeName);
+                            if (null == parameterType) {
+                                throw new DalvikException();
+                            }
+                        }
+                        result.Add((T)parameterType);
+                    }
+                    else { result.Add(parameterTypeName as T); }
+                }
+                return result;
             }
-            reader.BaseStream.Position = savedPosition;
-            return result;
+            finally { reader.BaseStream.Position = savedPosition; }
         }
 
         private void LoadStrings(BinaryReader reader)
@@ -1182,10 +1255,18 @@ namespace com.rackham.ApkHandler.Dex
                     throw new ParseException();
                 }
                 this.Types.Add(new KnownType(descriptor));
+                // Immediately create the definition.
+                GetOrCreateTypeDefinition(descriptor, delegate (string fullName) {
+                    return new ClassDefinition(fullName);
+                });
             }
             return;
         }
 
+        /// <summary>Parse an input stream that is expected to match the DEX file format.
+        /// </summary>
+        /// <param name="from"></param>
+        /// <returns></returns>
         public static DexFile Parse(Stream from)
         {
             DexFile result = new DexFile();
@@ -1204,6 +1285,7 @@ namespace com.rackham.ApkHandler.Dex
             List<PendingClassResolution> pendingResolutions;
             result.LoadStrings(reader);
             result.LoadTypes(reader);
+            // From here we can resolve any local type.
             result.LoadPrototypes(reader);
             result.LoadFields(reader);
             result.LoadMethods(reader);
@@ -1215,7 +1297,7 @@ namespace com.rackham.ApkHandler.Dex
                 // This is an external type. Add a dummy definition.
                 JavaTypeDefinition definition =
                     JavaTypeDefinition.TryGet(scannedType.FullName);
-                scannedType.SetDefinition(definition ?? ExternalClass.GetOrCreate(scannedType.FullName));
+                scannedType.SetDefinition(definition ?? GetOrCreateTypeDefinition(scannedType.FullName));
             }
             foreach (PendingClassResolution resolution in pendingResolutions) {
                 string superClassName = resolution.SuperClassName;
@@ -1358,7 +1440,7 @@ namespace com.rackham.ApkHandler.Dex
         private class ExternalClass : BaseClassDefinition, IClass, IAnnotatable
         {
             #region CONSTRUCTORS
-            private ExternalClass(string fullName)
+            internal ExternalClass(string fullName)
                 : base(fullName)
             {
                 return;
@@ -1378,32 +1460,6 @@ namespace com.rackham.ApkHandler.Dex
             #endregion
 
             #region METHODS
-            public static JavaTypeDefinition GetOrCreate(string fullName)
-            {
-                if (string.IsNullOrEmpty(fullName)) {
-                    throw new ArgumentNullException();
-                }
-                bool isBuiltin = true;
-                // Array are special types.
-                if ('L' == fullName[0]) {
-                    isBuiltin = false;
-                    fullName = JavaHelpers.AssertNotEmpty(fullName).Substring(1);
-                }
-                int indirectionsCount = 0;
-                while ('[' == JavaHelpers.AssertNotEmpty(fullName)[0]) {
-                    indirectionsCount++;
-                    fullName = JavaHelpers.AssertNotEmpty(fullName).Substring(1);
-                }
-                if (!isBuiltin) { fullName = 'L' + fullName; }
-                JavaTypeDefinition result = JavaTypeDefinition.TryGet(fullName);
-                if (null == result) {
-                    result = new ExternalClass(fullName);
-                }
-                while (0 < indirectionsCount--) {
-                }
-                return result;
-            }
-
             public override void SetBaseClass(IJavaType value)
             {
                 throw new InvalidOperationException();

@@ -20,7 +20,10 @@ namespace com.rackham.ApkJava
             if (null == container) { throw new ArgumentNullException(); }
             this.Name = name;
             this.Namespace = container;
-            container.Register(this);
+            // ArrayType objects registration must not be performed before the
+            // instance is fully initialized. The ArrayType constructor will handle
+            // the registration later.
+            if (!IsArray) { container.Register(this); }
             return;
         }
 
@@ -130,27 +133,44 @@ namespace com.rackham.ApkJava
         #endregion
 
         #region PROPERTIES
-        public string FullyQualifiedName
+        public string FullyQualifiedBinaryName
         {
             get
             {
-                if (null == _fullyQualifiedName) {
+                if (null == _fullyQualifiedBinaryName) {
                     StringBuilder builder = new StringBuilder();
-                    builder.Append(Name);
                     for (NamingspaceItem item = Namespace;
                         !object.ReferenceEquals(NamingspaceItem.Root, item);
                         item = item.Parent)
                     {
-                        builder.Insert(0, NamespaceItemSeparator);
+                        if (0 != builder.Length) {
+                            builder.Insert(0, NamespaceItemSeparator);
+                        }
                         builder.Insert(0, item.Name);
                     }
-                    _fullyQualifiedName = builder.ToString();
+                    _namespaceBinaryName = builder.ToString();
+                    if (0 < builder.Length) {
+                        builder.Append(NamespaceItemSeparator);
+                    }
+                    builder.Append(Name);
+                    _fullyQualifiedBinaryName = builder.ToString();
                 }
-                return _fullyQualifiedName;
+                return _fullyQualifiedBinaryName;
             }
             protected set
             {
                 throw new InvalidOperationException();
+            }
+        }
+
+        public string FullyQualifiedJavaName
+        {
+            get
+            {
+                if (null == _fullyQualifiedJavaName) {
+                    _fullyQualifiedJavaName = FullyQualifiedBinaryName.Replace('/', '.');
+                }
+                return _fullyQualifiedJavaName;
             }
         }
 
@@ -171,6 +191,29 @@ namespace com.rackham.ApkJava
         public string Name { get; protected set; }
 
         public NamingspaceItem Namespace { get; protected set; }
+
+        public string NamespaceBinaryName
+        {
+            get
+            {
+                StringBuilder builder = new StringBuilder();
+                for(NamingspaceItem scannedItem = Namespace;
+                    !object.ReferenceEquals(scannedItem, NamingspaceItem.Root);
+                    scannedItem = scannedItem.Parent)
+                {
+                    if (0 < builder.Length) {
+                        builder.Insert(0, '/');
+                    }
+                    builder.Insert(0, scannedItem.Name);
+                }
+                return builder.ToString();
+            }
+        }
+
+        public string NamespaceJavaName
+        {
+            get { return NamespaceBinaryName.Replace('/', '.'); }
+        }
 
         public IJavaType SuperType { get; protected set; }
         #endregion
@@ -295,7 +338,10 @@ namespace com.rackham.ApkJava
 
         #region FIELDS
         public const char NamespaceItemSeparator = '/';
-        private string _fullyQualifiedName;
+        private string _fullyQualifiedBinaryName;
+        private string _fullyQualifiedJavaName;
+        private string _namespaceBinaryName;
+        private string _namespaceJavaName;
         #endregion
 
         #region INNER CLASSES
@@ -305,7 +351,7 @@ namespace com.rackham.ApkJava
             {
                 Root = new NamingspaceItem() {
                     _arraysByIndexedItem =
-                        new Dictionary<JavaTypeDefinition, JavaTypeDefinition>()
+                        new Dictionary<JavaTypeDefinition, ArrayType>()
                 };
             }
 
@@ -325,7 +371,7 @@ namespace com.rackham.ApkJava
                 get
                 {
                     JavaTypeDefinition result;
-                    if(_typesPerName.TryGetValue(name, out result)) {
+                    if ((null != _typesPerName) && _typesPerName.TryGetValue(name, out result)) {
                         return result;
                     }
                     throw new InvalidOperationException();
@@ -338,12 +384,15 @@ namespace com.rackham.ApkJava
             }
 
             public string Name { get; private set; }
+
             internal NamingspaceItem Parent { get; private set; }
+
             INamespace INamespace.Parent
             {
                 get { return this.Parent; }
             }
-            internal static NamingspaceItem Root { get; private set; }
+
+            public static NamingspaceItem Root { get; private set; }
 
             internal NamingspaceItem GetOrCreateSon(string name)
             {
@@ -374,7 +423,10 @@ namespace com.rackham.ApkJava
                     if (!object.ReferenceEquals(Root, this)) {
                         throw new InvalidOperationException();
                     }
-                    this._arraysByIndexedItem.Add(definition, definition.IndexedType);
+                    if (!(definition is ArrayType)) {
+                        throw new ArgumentException();
+                    }
+                    this._arraysByIndexedItem.Add(definition.IndexedType, (ArrayType)definition);
                 }
                 if (null == _typesPerName) {
                     _typesPerName = new Dictionary<string, JavaTypeDefinition>();
@@ -389,21 +441,23 @@ namespace com.rackham.ApkJava
                 return;
             }
 
-            internal JavaTypeDefinition TryGet(string name)
+            public JavaTypeDefinition TryGet(string name)
             {
                 JavaTypeDefinition result;
+                if (null == _typesPerName) { return null; }
                 return _typesPerName.TryGetValue(name, out result)
                     ? result
                     : null;
             }
 
-            internal JavaTypeDefinition TryGetArrayOf(JavaTypeDefinition item)
+            public ArrayType TryGetArrayOf(JavaTypeDefinition item)
             {
                 if (null == item) { throw new ArgumentNullException(); }
                 if (!object.ReferenceEquals(this, Root)) {
                     throw new InvalidOperationException();
                 }
-                JavaTypeDefinition result;
+                if (null == _arraysByIndexedItem) { return null; }
+                ArrayType result;
                 return _arraysByIndexedItem.TryGetValue(item, out result)
                     ? result
                     : null;
@@ -419,7 +473,7 @@ namespace com.rackham.ApkJava
                     : null;
             }
 
-            private Dictionary<JavaTypeDefinition, JavaTypeDefinition> _arraysByIndexedItem;
+            private Dictionary<JavaTypeDefinition, ArrayType> _arraysByIndexedItem;
             private Dictionary<string, NamingspaceItem> _sonsByName;
             private Dictionary<string, JavaTypeDefinition> _typesPerName;
         }

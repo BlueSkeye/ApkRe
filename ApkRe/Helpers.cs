@@ -45,35 +45,21 @@ namespace com.rackham.ApkRe
             return (first.MethodRelativeOffset + first.InstructionSize) == second.MethodRelativeOffset;
         }
 
-        internal static string BuildMethodDeclarationString(IMethod from, bool demangle = true)
+        internal static string BuildMethodDeclarationString(IMethod from)
         {
             if (null == from) { throw new ArgumentNullException(); }
             IPrototype prototype = from.Prototype;
-            string returnTypeNamespace = null;
-            string returnTypeName = demangle
-                ? JavaHelpers.GetCanonicTypeName(prototype.ReturnType, out returnTypeNamespace)
-                : prototype.ReturnType;
+            string returnTypeName = prototype.ReturnType.FullyQualifiedJavaName;
             StringBuilder builder = new StringBuilder();
-            builder.Append(string.IsNullOrEmpty(returnTypeNamespace)
-                ? returnTypeName
-                : returnTypeNamespace + "." + returnTypeName)
+            builder.Append(returnTypeName)
                 .Append(" ")
                 .Append(from.Name)
                 .Append("(");
-            List<string> parameters = prototype.ParametersType;
+            List<IJavaType> parameters = prototype.ParametersType;
             if (null != parameters) {
                 for(int index = 0; index < parameters.Count; index++) {
                     if (0 < index) { builder.Append(", "); }
-                    string parameterTypeName = parameters[index];
-                    if (!demangle) { builder.Append(parameterTypeName); }
-                    else {
-                        string typeNamespace;
-                        parameterTypeName = JavaHelpers.GetCanonicTypeName(parameterTypeName,
-                            out typeNamespace);
-                        builder.Append((string.IsNullOrEmpty(typeNamespace)
-                            ? parameterTypeName
-                            : typeNamespace + "." + parameterTypeName));
-                    }
+                    builder.Append(parameters[index].FullyQualifiedJavaName);
                 }
             }
             return builder.Append(")").ToString();
